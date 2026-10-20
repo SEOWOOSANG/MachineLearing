@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>파이썬으로 배우는 데이터분석과 통계</title>
+<link rel="stylesheet" href="style.css">
+<style>.card{display:flex;gap:16px;align-items:center;padding:16px 20px;margin:12px 0;border:1px solid var(--line);border-radius:14px;background:var(--card);text-decoration:none;color:var(--fg)}
+.card:hover{border-color:var(--accent)} .card .n{font-weight:700;color:var(--accent);font-size:20px;min-width:44px} .card span{color:var(--muted);font-size:15px}</style></head>
+<body><header class="top"><a href="index.html">📊 파이썬으로 배우는 데이터분석과 통계</a></header>
+<main>
+<div class="chead"><div class="cnum">비전공자·초보자를 위한 수업자료</div><h1>파이썬으로 배우는 데이터분석과 통계</h1>
+<p class="sub">R 기반 『R을 이용한 통계 분석』 1·6·7·8·9장을 파이썬(pandas · seaborn)으로 새로 만든 자료</p></div>
+<div class="box goal"><div class="box-title">📘 이 자료는 이렇게 쓰세요</div>
+<p>• 회색 코드 상자 안의 코드는 <b>그대로 복사해서 실행</b>할 수 있고, 바로 아래 ‘실행 결과’가 실제 결과입니다.<br>
+• 🍜 <b>쉬운 비유</b> 박스부터 읽으면 낯선 개념도 편하게 시작할 수 있습니다.<br>
+• 🔁 <b>R에서는?</b> 박스는 R로 먼저 배운 분들을 위한 대응표입니다. (초보자는 건너뛰어도 됩니다.)</p></div>
+<h2 style="border:0;margin-top:28px">목차</h2>
+<a class="card" href="ch01.html"><div class="n">1장</div><div><b>통계 분석이란?</b><br><span>통계가 무엇이고 왜 배우는지, 변수의 종류와 파이썬 데이터 불러오기</span></div></a><a class="card" href="ch02.html"><div class="n">2장</div><div><b>기술통계 분석이란?</b><br><span>분석 전 ‘건강검진’: info·describe·결측치·pairplot</span></div></a><a class="card" href="ch03.html"><div class="n">3장</div><div><b>범주형 변수 기술통계</b><br><span>도수표·교차표·막대그래프·모자이크·카이제곱 검정</span></div></a><a class="card" href="ch04.html"><div class="n">4장</div><div><b>수치형 변수 기술통계</b><br><span>평균·표준편차·왜도, 히스토그램·상자그림, 변환, 상관계수·산점도</span></div></a><a class="card" href="ch05.html"><div class="n">5장</div><div><b>범주형 × 수치형 변수의 관계</b><br><span>groupby·t검정·ANOVA, 그룹별 분포 그래프, 혼동 효과</span></div></a>
+<h2>실습용 주피터 노트북</h2>
+<div class="box tip"><div class="box-title">📓 직접 따라 하며 실행해 보세요</div><p>각 장의 모든 내용(설명 + 코드)이 노트북으로도 들어 있고, 코드에는 초보자용 설명 주석(<code># ▶ ...</code>)이 달려 있습니다. 결과 칸은 비어 있어서 직접 실행하며 채워 갑니다.</p><p><a href="ch01.ipynb">1장</a> · <a href="ch02.ipynb">2장</a> · <a href="ch03.ipynb">3장</a> · <a href="ch04.ipynb">4장</a> · <a href="ch05.ipynb">5장</a> (.ipynb 파일을 주피터/VS Code/Colab에서 여세요)</p></div>
+<h2>실습 준비</h2>
+<div class="box tip"><div class="box-title">1. 파이썬 라이브러리 설치 (한 번만)</div>
+<p>터미널(또는 주피터/Colab 셀)에서 다음을 실행합니다.</p>
+<div class="code"><pre><code>pip install pandas numpy matplotlib seaborn scipy statsmodels</code></pre></div></div>
+<div class="box tip"><div class="box-title">2. 실습 데이터</div>
+<p><code>data</code> 폴더의 CSV 3개를 사용합니다.</p>
+<table class="plain"><thead><tr><th>파일</th><th>내용</th><th>원본 R 교재에서 대체한 데이터</th></tr></thead><tbody>
+<tr><td>tips.csv</td><td>식당 계산서 244건 (금액·팁·성별·요일…)</td><td>course (수강생 성적)</td></tr>
+<tr><td>titanic.csv</td><td>타이타닉 승객 891명</td><td>Arthritis, BrokenMarriage</td></tr>
+<tr><td>diamonds.csv</td><td>다이아몬드 53,940개</td><td>diamonds (동일)</td></tr></tbody></table>
+<p>코드는 <b>이 HTML 파일들이 있는 폴더(강의자료)</b>를 작업 폴더로 두고 실행한다고 가정합니다. 주피터 노트북을 이 폴더에서 열면 <code>data/tips.csv</code> 경로가 그대로 동작합니다.</p></div>
+<div class="box warn"><div class="box-title">한글이 깨져 보인다면?</div>
+<p>각 장 첫 코드의 글꼴 설정(<code>plt.rcParams['font.family']</code>)을 그대로 실행하세요. Windows는 ‘맑은 고딕’, Mac은 ‘Apple SD Gothic Neo’를 사용하며, Google Colab에서는 나눔 글꼴 설치가 따로 필요합니다.</p></div>
+</main>
+<footer>※ 이 자료는 『R을 이용한 통계 분석』(김길환) 온라인 교재의 구성을 바탕으로, 파이썬 기준으로 새로 작성한 수업자료입니다.</footer>
+</body></html>

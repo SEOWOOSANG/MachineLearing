@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>5장 범주형 × 수치형 변수의 관계 - 파이썬으로 배우는 데이터분석과 통계</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<header class="top"><a href="index.html">📊 파이썬으로 배우는 데이터분석과 통계</a>
+<nav><a href="ch01.html">1장</a><a href="ch02.html">2장</a><a href="ch03.html">3장</a><a href="ch04.html">4장</a><a href="ch05.html" class=cur>5장</a></nav></header>
+<main>
+<div class="chead"><div class="cnum">5장</div><h1>범주형 × 수치형 변수의 관계</h1><p class="sub">‘그룹에 따라 숫자가 달라질까?’ 비교하기</p></div>
+<div class="box goal"><div class="box-title">🎯 이 장에서 배우는 것</div><ul><li>범주별로 수치형 변수의 평균·표준편차 등을 계산할 수 있다 (<code>groupby</code>).</li><li>두 집단·세 집단 이상의 평균 차이를 검정(t-검정, ANOVA)해 본다.</li><li>상자그림·바이올린·밀도 그래프 등으로 그룹별 분포를 비교할 수 있다.</li><li><b>혼동 효과</b>(숨은 변수의 함정)가 무엇인지 안다.</li></ul></div>
+<div class="toc"><b>이 장의 목차</b><a href="#s1">5.1 범주별 통계량 요약</a><a href="#s2">5.2 범주별 분포 그래프</a><a href="#s3">5.3 주의: 혼동 효과 (숨은 변수의 함정)</a></div>
+<div class="code"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">seaborn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sns</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">platform</span>
+
+<span class="n">sns</span><span class="o">.</span><span class="n">set_theme</span><span class="p">(</span><span class="n">style</span><span class="o">=</span><span class="s1">'whitegrid'</span><span class="p">)</span>             <span class="c1"># 그래프 기본 스타일 (이 줄을 먼저!)</span>
+
+<span class="c1"># 그래프에서 한글이 깨지지 않게 하는 설정 (운영체제에 맞는 글꼴 선택)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">'font.family'</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'Darwin'</span><span class="p">:</span> <span class="s1">'Apple SD Gothic Neo'</span><span class="p">,</span> <span class="s1">'Windows'</span><span class="p">:</span> <span class="s1">'Malgun Gothic'</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">(),</span> <span class="s1">'NanumGothic'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">'axes.unicode_minus'</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>   <span class="c1"># 마이너스(-) 기호 깨짐 방지</span>
+</code></pre></div><div class="code"><pre><code><span class="n">tips</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/tips.csv"</span><span class="p">)</span>
+<span class="n">diamonds</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/diamonds.csv"</span><span class="p">)</span>
+<span class="n">titanic</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/titanic.csv"</span><span class="p">)</span>
+
+<span class="n">tips</span><span class="p">[</span><span class="s2">"day"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">tips</span><span class="p">[</span><span class="s2">"day"</span><span class="p">],</span> <span class="p">[</span><span class="s2">"Thur"</span><span class="p">,</span> <span class="s2">"Fri"</span><span class="p">,</span> <span class="s2">"Sat"</span><span class="p">,</span> <span class="s2">"Sun"</span><span class="p">],</span> <span class="n">ordered</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">tips</span><span class="p">[</span><span class="s2">"tip_rate"</span><span class="p">]</span> <span class="o">=</span> <span class="n">tips</span><span class="p">[</span><span class="s2">"tip"</span><span class="p">]</span> <span class="o">/</span> <span class="n">tips</span><span class="p">[</span><span class="s2">"total_bill"</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span>    <span class="c1"># 팁 비율(%): 금액 대비 팁이 몇 %인지</span>
+<span class="n">tips</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>total_bill</th>
+      <th>tip</th>
+      <th>sex</th>
+      <th>smoker</th>
+      <th>day</th>
+      <th>time</th>
+      <th>size</th>
+      <th>tip_rate</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>16.99</td>
+      <td>1.01</td>
+      <td>Female</td>
+      <td>No</td>
+      <td>Sun</td>
+      <td>Dinner</td>
+      <td>2</td>
+      <td>5.944673</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>10.34</td>
+      <td>1.66</td>
+      <td>Male</td>
+      <td>No</td>
+      <td>Sun</td>
+      <td>Dinner</td>
+      <td>3</td>
+      <td>16.054159</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>21.01</td>
+      <td>3.50</td>
+      <td>Male</td>
+      <td>No</td>
+      <td>Sun</td>
+      <td>Dinner</td>
+      <td>3</td>
+      <td>16.658734</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>23.68</td>
+      <td>3.31</td>
+      <td>Male</td>
+      <td>No</td>
+      <td>Sun</td>
+      <td>Dinner</td>
+      <td>2</td>
+      <td>13.978041</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>24.59</td>
+      <td>3.61</td>
+      <td>Female</td>
+      <td>No</td>
+      <td>Sun</td>
+      <td>Dinner</td>
+      <td>4</td>
+      <td>14.680765</td>
+    </tr>
+  </tbody>
+</table></div></div><p>이 장의 핵심 질문은 이렇습니다: <b>“범주(그룹)에 따라 수치가 달라지는가?”</b> 예를 들면 “남성과 여성의 계산 금액은 다를까?”, “요일에 따라 팁 비율이 다를까?” 같은 것입니다.</p><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>학교 대항 체육대회에서 <b>반별 평균 기록</b>을 비교하는 것과 같습니다. ‘반’은 범주형 변수, ‘기록’은 수치형 변수입니다. 반마다 기록을 묶어서 요약하고(4.1), 그림으로 겹쳐 놓고 비교합니다(4.2).</p></div><h2 id="s1">5.1 범주별 통계량 요약</h2><h3>5.1.1 groupby: 묶어서 계산하기</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p><code>groupby</code>는 <b>빨래 분류</b>입니다. 흰옷/색깔옷/수건을 먼저 나눠 쌓고(group), 각 무더기마다 무게를 재는(mean) 순서죠. “성별로 묶어서, 그룹마다 평균을 구해라.”</p></div><div class="code"><pre><code><span class="n">tips</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"sex"</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="s2">"total_bill"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>   <span class="c1"># 성별로 묶어 총금액 평균</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>total_bill</th>
+    </tr>
+    <tr>
+      <th>sex</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Female</th>
+      <td>18.056897</td>
+    </tr>
+    <tr>
+      <th>Male</th>
+      <td>20.744076</td>
+    </tr>
+  </tbody>
+</table></div></div><p><code>agg()</code>에 여러 계산을 리스트로 주면 한 번에 여러 통계량을 구합니다.</p><div class="code"><pre><code><span class="n">tips</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"sex"</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="s2">"total_bill"</span><span class="p">]</span><span class="o">.</span><span class="n">agg</span><span class="p">([</span><span class="s2">"count"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">,</span> <span class="s2">"median"</span><span class="p">,</span> <span class="s2">"std"</span><span class="p">,</span> <span class="s2">"min"</span><span class="p">,</span> <span class="s2">"max"</span><span class="p">])</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>count</th>
+      <th>mean</th>
+      <th>median</th>
+      <th>std</th>
+      <th>min</th>
+      <th>max</th>
+    </tr>
+    <tr>
+      <th>sex</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Female</th>
+      <td>87</td>
+      <td>18.06</td>
+      <td>16.40</td>
+      <td>8.01</td>
+      <td>3.07</td>
+      <td>44.30</td>
+    </tr>
+    <tr>
+      <th>Male</th>
+      <td>157</td>
+      <td>20.74</td>
+      <td>18.35</td>
+      <td>9.25</td>
+      <td>7.25</td>
+      <td>50.81</td>
+    </tr>
+  </tbody>
+</table></div></div><p><b>묶는 변수를 두 개 이상</b> 주면 조합별로 계산합니다. (예: 성별 × 흡연 여부)</p><div class="code"><pre><code><span class="n">tips</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"sex"</span><span class="p">,</span> <span class="s2">"smoker"</span><span class="p">],</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="s2">"total_bill"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+      <th>total_bill</th>
+    </tr>
+    <tr>
+      <th>sex</th>
+      <th>smoker</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th rowspan="2" valign="top">Female</th>
+      <th>No</th>
+      <td>18.11</td>
+    </tr>
+    <tr>
+      <th>Yes</th>
+      <td>17.98</td>
+    </tr>
+    <tr>
+      <th rowspan="2" valign="top">Male</th>
+      <th>No</th>
+      <td>19.79</td>
+    </tr>
+    <tr>
+      <th>Yes</th>
+      <td>22.28</td>
+    </tr>
+  </tbody>
+</table></div></div><p>이 결과를 교차표 모양으로 펼치고 싶다면 <code>pivot_table</code>이 편리합니다. 엑셀의 ‘피벗 테이블’과 같은 기능입니다.</p><div class="code"><pre><code><span class="n">tips</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">values</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s2">"sex"</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"smoker"</span><span class="p">,</span> <span class="n">aggfunc</span><span class="o">=</span><span class="s2">"mean"</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>smoker</th>
+      <th>No</th>
+      <th>Yes</th>
+    </tr>
+    <tr>
+      <th>sex</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Female</th>
+      <td>18.11</td>
+      <td>17.98</td>
+    </tr>
+    <tr>
+      <th>Male</th>
+      <td>19.79</td>
+      <td>22.28</td>
+    </tr>
+  </tbody>
+</table></div></div><p>열마다 다른 계산을 하고 싶을 때도 <code>agg</code>를 씁니다. 결과 열 이름은 자유롭게 정할 수 있습니다.</p><div class="code"><pre><code><span class="n">tips</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"day"</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+    <span class="n">손님수</span><span class="o">=</span><span class="p">(</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="s2">"count"</span><span class="p">),</span>
+    <span class="n">평균금액</span><span class="o">=</span><span class="p">(</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">),</span>
+    <span class="n">평균팁비율</span><span class="o">=</span><span class="p">(</span><span class="s2">"tip_rate"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>손님수</th>
+      <th>평균금액</th>
+      <th>평균팁비율</th>
+    </tr>
+    <tr>
+      <th>day</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Thur</th>
+      <td>62</td>
+      <td>17.68</td>
+      <td>16.13</td>
+    </tr>
+    <tr>
+      <th>Fri</th>
+      <td>19</td>
+      <td>17.15</td>
+      <td>16.99</td>
+    </tr>
+    <tr>
+      <th>Sat</th>
+      <td>87</td>
+      <td>20.44</td>
+      <td>15.32</td>
+    </tr>
+    <tr>
+      <th>Sun</th>
+      <td>76</td>
+      <td>21.41</td>
+      <td>16.69</td>
+    </tr>
+  </tbody>
+</table></div></div><div class="box rcmp"><div class="box-title">🔁 R에서는?</div><p>R의 <code>tapply(x, g, mean)</code>와 <code>aggregate(x ~ g, data, mean)</code>는 모두 파이썬의 <code>df.groupby("g")["x"].mean()</code> 하나로 해결됩니다.</p></div><h3>5.1.2 두 집단의 평균 비교: t-검정</h3><p>남성 계산서의 평균(약 20.7달러)이 여성(약 18.1달러)보다 높아 보입니다. 하지만 이 차이가 <b>우연일 수도</b> 있습니다. 두 집단의 평균 차이가 우연으로 설명 가능한지 확인하는 방법이 <b>t-검정</b>입니다.</p><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>두 반의 시험 평균이 78점과 80점이라고 해서 ‘B반이 더 우수하다’고 단정할 수 있을까요? 학생이 몇 명 안 되거나 점수가 들쭉날쭉하다면 그 2점 차이는 <b>그날의 컨디션</b> 정도의 우연일 수 있습니다. t-검정은 “차이의 크기”를 “데이터가 원래 흔들리는 정도”와 비교해서, 차이가 흔들림보다 확실히 큰지 따져 줍니다.</p></div><div class="code"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">stats</span>
+
+<span class="n">male</span> <span class="o">=</span> <span class="n">tips</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">tips</span><span class="p">[</span><span class="s2">"sex"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Male"</span><span class="p">,</span> <span class="s2">"total_bill"</span><span class="p">]</span>       <span class="c1"># 남성 손님의 금액만 뽑기</span>
+<span class="n">female</span> <span class="o">=</span> <span class="n">tips</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">tips</span><span class="p">[</span><span class="s2">"sex"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Female"</span><span class="p">,</span> <span class="s2">"total_bill"</span><span class="p">]</span>
+
+<span class="n">t</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">ttest_ind</span><span class="p">(</span><span class="n">male</span><span class="p">,</span> <span class="n">female</span><span class="p">,</span> <span class="n">equal_var</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>       <span class="c1"># 두 집단 평균 비교</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"t 통계량 = </span><span class="si">{</span><span class="n">t</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"p-값 = </span><span class="si">{</span><span class="n">p</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">t 통계량 = 2.373
+p-값 = 0.0186</pre></div><p>p-값이 0.05보다 작으므로(약 0.02), 남성과 여성의 평균 계산 금액 차이는 우연으로 보기 어렵다고 판단합니다.</p><div class="box tip"><div class="box-title">💡 알아두기</div><p><b>읽는 법</b>: p-값이 0.05보다 작으면 “평균 차이가 우연이라 보기 어렵다”, 크면 “이 정도 차이는 우연으로도 충분히 생길 수 있다”입니다. 이때 p-값이 0.05 근처에 있다면 ‘애매한 경계’이므로 결론을 단정하지 말고 그래프와 함께 판단하세요.</p></div><p><code>equal_var=False</code>는 두 집단의 퍼짐이 달라도 쓸 수 있는 안전한 방식(Welch 검정)입니다. 두 집단의 분산(퍼짐)이 같은지는 <b>등분산 검정</b>으로 확인합니다. (R의 <code>var.test()</code> 역할)</p><div class="code"><pre><code><span class="n">stat</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">levene</span><span class="p">(</span><span class="n">male</span><span class="p">,</span> <span class="n">female</span><span class="p">)</span>    <span class="c1"># 두 집단의 퍼짐이 같은지 검정</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"등분산 검정 p-값 = </span><span class="si">{</span><span class="n">p</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">등분산 검정 p-값 = 0.2027</pre></div><h3>5.1.3 세 집단 이상의 평균 비교: ANOVA(분산분석)</h3><p>집단이 셋 이상이면 t-검정을 여러 번 하는 대신 <b>ANOVA</b>로 “적어도 한 집단은 평균이 다르다”를 한 번에 검정합니다.</p><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>네 개의 식당 지점(목·금·토·일)의 평균 매출을 비교한다고 합시다. ‘지점 사이의 차이’가 ‘지점 안에서 날마다 매출이 들쭉날쭉한 정도’보다 훨씬 크면, 지점마다 정말 다르다고 볼 수 있죠. <b>분산분석 = 집단 사이의 차이 ÷ 집단 안의 흔들림</b>의 비교입니다.</p></div><div class="code"><pre><code><span class="n">groups</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span><span class="p">[</span><span class="s2">"tip_rate"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">tips</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"day"</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span><span class="p">)]</span>   <span class="c1"># 요일별 팁 비율 4묶음</span>
+<span class="n">F</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">f_oneway</span><span class="p">(</span><span class="o">*</span><span class="n">groups</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"F 통계량 = </span><span class="si">{</span><span class="n">F</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, p-값 = </span><span class="si">{</span><span class="n">p</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">F 통계량 = 0.848, p-값 = 0.4688</pre></div><p>p-값이 0.05보다 훨씬 크므로(약 0.47), 요일에 따라 팁 비율이 다르다는 증거는 없습니다. 팁 비율은 요일이 달라도 비슷하다고 볼 수 있어요.</p><div class="box rcmp"><div class="box-title">🔁 R에서는?</div><p><code>t.test()</code> → <code>stats.ttest_ind()</code>, <code>var.test()</code> → <code>stats.levene()</code>(또는 <code>bartlett()</code>), <code>aov()</code> → <code>stats.f_oneway()</code>. 더 자세한 분산분석 표가 필요하면 <code>statsmodels</code>의 <code>ols</code> + <code>anova_lm</code>을 사용합니다.</p></div><h2 id="s2">5.2 범주별 분포 그래프</h2><p>숫자로 요약하면 정보가 줄어듭니다. 그래프로 <b>그룹마다의 분포 전체</b>를 겹쳐 비교하면 평균에서는 안 보이던 것들이 드러납니다.</p><h3>5.2.1 상자 그림</h3><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">boxplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"sex"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"성별 계산 금액"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch05_01.png" alt="그래프 1"></div><p>그룹별 중위수(상자 안 선), 퍼짐(상자 크기), 이상치(점)를 한눈에 비교할 수 있습니다. 변수를 하나 더 얹을 수도 있어요 (<code>hue</code>).</p><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">boxplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"day"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">"sex"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"요일·성별 계산 금액"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch05_02.png" alt="그래프 2"></div><h3>5.2.2 바이올린 그림</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>바이올린 그림은 상자 그림에 <b>‘살’을 붙인 것</b>입니다. 상자 그림은 뼈대(요약 숫자)만 보여 주지만, 바이올린은 데이터가 <b>어디에 많이 몰려 있는지(두꺼운 곳)</b>까지 모양으로 보여 줍니다. 바이올린의 허리가 잘록한 곳은 데이터가 적은 구간이에요.</p></div><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">violinplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"day"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">inner</span><span class="o">=</span><span class="s2">"quartile"</span><span class="p">)</span>   <span class="c1"># inner: 안쪽에 사분위선 표시</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"요일별 계산 금액 분포"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch05_03.png" alt="그래프 3"></div><h3>5.2.3 히스토그램: 칸을 나누어 비교</h3><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">displot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="s2">"sex"</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">3.6</span><span class="p">)</span>   <span class="c1"># col: 그룹마다 칸 나누기</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch05_04.png" alt="그래프 4"></div><p>그룹을 한 칸 안에 겹쳐 그리면 직접 비교하기 쉽습니다. 겹침을 투명하게 하려면 <code>alpha</code>를 낮춥니다.</p><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">"sex"</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"성별 계산 금액 히스토그램(겹쳐 그리기)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch05_05.png" alt="그래프 5"></div><div class="box warn"><div class="box-title">⚠️ 주의</div><p>그룹마다 사람 수가 다르면(예: 남성 157팀, 여성 87팀) 막대 높이를 그대로 비교하기 어렵습니다. 이럴 땐 <code>stat="density"</code>와 <code>common_norm=False</code>를 써서 ‘비율’로 맞춰 비교하세요.</p></div><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">"sex"</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">stat</span><span class="o">=</span><span class="s2">"density"</span><span class="p">,</span> <span class="n">common_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"성별 계산 금액 (집단 크기 보정)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch05_06.png" alt="그래프 6"></div><h3>5.2.4 빈도 다각형과 밀도 그래프</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>막대 여러 개가 겹치면 지저분하죠? 막대 윗부분만 <b>선으로 이어</b> 놓은 것이 빈도 다각형, 이를 더 부드럽게 다듬은 것이 밀도 그래프입니다. 여러 그룹을 <b>투명 필름 여러 장</b>처럼 겹쳐 비교할 때 깔끔해요.</p></div><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">"sex"</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">element</span><span class="o">=</span><span class="s2">"poly"</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>   <span class="c1"># 빈도 다각형</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"빈도 다각형"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch05_07.png" alt="그래프 7"></div><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">kdeplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">"sex"</span><span class="p">,</span> <span class="n">common_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"성별 계산 금액의 밀도 그래프"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch05_08.png" alt="그래프 8"></div><h3>5.2.5 점을 직접 찍어 보기 (산점도·스트립 플롯)</h3><p>범주가 2~4개이고 관측치가 많지 않다면, 요약 대신 <b>모든 점</b>을 보여 주는 것도 좋은 방법입니다. 같은 자리에 점이 겹치지 않도록 좌우로 살짝 흩뿌리는 것을 <b>지터(jitter)</b>라고 합니다.</p><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>출석부에 ‘평균 키’만 적는 대신 <b>학생 전원이 줄 서 있는 모습</b>을 사진으로 찍는 것과 같습니다. 이상한 점(유독 큰 학생), 몰려 있는 구간이 눈에 바로 들어옵니다.</p></div><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">stripplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"day"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">"sex"</span><span class="p">,</span> <span class="n">dodge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">jitter</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"요일·성별 계산 금액(모든 점 표시)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch05_09.png" alt="그래프 9"></div><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">stripplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"day"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"gray"</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">jitter</span><span class="o">=</span><span class="mf">0.25</span><span class="p">)</span>     <span class="c1"># 점 + 평균(빨간 점)</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">pointplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"day"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"crimson"</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">"none"</span><span class="p">,</span> <span class="n">errorbar</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"점 + 평균"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch05_10.png" alt="그래프 10"></div><h2 id="s3">5.3 주의: 혼동 효과 (숨은 변수의 함정)</h2><p>지금까지는 변수 두 개(범주형 하나, 수치형 하나)만 보았습니다. 그런데 이렇게 <b>두 변수만 보면 틀린 결론</b>에 이를 때가 있습니다. 다이아몬드로 확인해 봅시다. 다이아몬드는 세공(cut) 등급이 높을수록(Ideal이 최고) 비싸야 할 것 같습니다.</p><div class="code"><pre><code><span class="n">order</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Fair"</span><span class="p">,</span> <span class="s2">"Good"</span><span class="p">,</span> <span class="s2">"Very Good"</span><span class="p">,</span> <span class="s2">"Premium"</span><span class="p">,</span> <span class="s2">"Ideal"</span><span class="p">]</span>       <span class="c1"># 낮은 등급 → 높은 등급</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">boxplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">diamonds</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"cut"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"price"</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"세공 등급별 가격"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch05_11.png" alt="그래프 11"></div><div class="code"><pre><code><span class="n">diamonds</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"cut"</span><span class="p">)[[</span><span class="s2">"price"</span><span class="p">,</span> <span class="s2">"carat"</span><span class="p">]]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">order</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>price</th>
+      <th>carat</th>
+    </tr>
+    <tr>
+      <th>cut</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Fair</th>
+      <td>4358.76</td>
+      <td>1.05</td>
+    </tr>
+    <tr>
+      <th>Good</th>
+      <td>3928.86</td>
+      <td>0.85</td>
+    </tr>
+    <tr>
+      <th>Very Good</th>
+      <td>3981.76</td>
+      <td>0.81</td>
+    </tr>
+    <tr>
+      <th>Premium</th>
+      <td>4584.26</td>
+      <td>0.89</td>
+    </tr>
+    <tr>
+      <th>Ideal</th>
+      <td>3457.54</td>
+      <td>0.70</td>
+    </tr>
+  </tbody>
+</table></div></div><p>놀랍게도 <b>최고 등급(Ideal)의 평균 가격이 가장 낮고</b>, 최저 등급(Fair)이 오히려 더 비쌉니다. 세공을 잘할수록 싸다는 뜻일까요? 오른쪽 열(평균 무게)을 보세요. 가장 싼 Ideal은 평균 무게가 작고, 상대적으로 비싼 Fair는 무게가 큽니다.</p><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>‘아이스크림을 많이 먹은 날일수록 물놀이 사고가 많다’는 통계가 있다고 합시다. 진짜 원인은 아이스크림이 아니라 <b>‘더운 날씨’</b>였습니다. 이렇게 두 변수 사이에 끼어 들어 관계를 왜곡하는 제3의 변수를 <b>혼동 변수(confounder)</b>라고 합니다. 다이아몬드에서는 <b>무게(carat)</b>가 그 역할을 했습니다. “무거운 다이아몬드는 세공이 낮은 등급인 경우가 많은데, 무게가 가격을 크게 좌우하니 결국 낮은 등급이 비싸 보였다”는 겁니다.</p></div><p>혼동 변수의 영향을 걷어내려면 <b>무게를 비슷한 것끼리 묶어서</b> 비교하면 됩니다. 무게 구간(범주)을 만들고 그 안에서 세공 등급별 가격을 보겠습니다.</p><div class="code"><pre><code><span class="n">diamonds</span><span class="p">[</span><span class="s2">"carat_group"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">cut</span><span class="p">(</span><span class="n">diamonds</span><span class="p">[</span><span class="s2">"carat"</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s2">"~0.5"</span><span class="p">,</span> <span class="s2">"0.5~1"</span><span class="p">,</span> <span class="s2">"1~1.5"</span><span class="p">,</span> <span class="s2">"1.5~"</span><span class="p">])</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">barplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">diamonds</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"carat_group"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"price"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">"cut"</span><span class="p">,</span> <span class="n">hue_order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">errorbar</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"무게 구간별·세공 등급별 평균 가격"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"무게 구간 (carat)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch05_12.png" alt="그래프 12"></div><p>무게가 1캐럿 이상인 구간에서는 세공 등급이 높을수록 가격도 높아지는 ‘상식적인’ 경향이 나타납니다. 반면 가벼운 구간에서는 등급 간 차이가 작고 뒤섞여 있어요. 가격은 세공 등급보다 <b>무게의 영향을 훨씬 크게</b> 받는다는 점도 눈에 띕니다 (막대 높이가 무게 구간에 따라 크게 달라집니다). 무게-가격 관계를 세공 등급별 색으로 그려 봐도 같은 이야기를 할 수 있습니다.</p><div class="code"><pre><code><span class="n">sample</span> <span class="o">=</span> <span class="n">diamonds</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="mi">4000</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">sample</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"carat"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"price"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">"cut"</span><span class="p">,</span> <span class="n">hue_order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"무게-가격 관계 (세공 등급별 색)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch05_13.png" alt="그래프 13"></div><div class="box warn"><div class="box-title">⚠️ 주의</div><p><b>두 변수만 보고 내린 결론을 곧이곧대로 믿지 마세요.</b> 항상 “이 관계를 왜곡할 만한 제3의 변수가 없을까?”를 질문하세요. 이것이 데이터를 해석할 때 가장 중요한 습관 중 하나입니다.</p></div><h3>요약: R ↔ 파이썬 대응표</h3><div class="tblwrap"><table class="plain "><thead><tr><th>하고 싶은 일</th><th>R</th><th>파이썬</th></tr></thead><tbody><tr><td>그룹별 평균</td><td><code>tapply()</code>, <code>aggregate()</code></td><td><code>df.groupby(g)[x].mean()</code></td></tr><tr><td>여러 통계량 한 번에</td><td>사용자 함수 + <code>aggregate</code></td><td><code>.agg([...])</code></td></tr><tr><td>두 집단 평균 검정</td><td><code>t.test()</code></td><td><code>stats.ttest_ind()</code></td></tr><tr><td>등분산 검정</td><td><code>var.test()</code></td><td><code>stats.levene()</code></td></tr><tr><td>분산분석(ANOVA)</td><td><code>aov()</code></td><td><code>stats.f_oneway()</code></td></tr><tr><td>상자/바이올린</td><td><code>geom_boxplot()</code>, <code>geom_violin()</code></td><td><code>sns.boxplot()</code>, <code>sns.violinplot()</code></td></tr><tr><td>그룹별 히스토그램</td><td><code>facet_wrap()</code></td><td><code>sns.displot(col=)</code></td></tr><tr><td>빈도 다각형/밀도</td><td><code>geom_freqpoly()</code>, <code>geom_density()</code></td><td><code>histplot(element="poly")</code>, <code>kdeplot()</code></td></tr><tr><td>겹침 방지 점 찍기</td><td><code>geom_jitter()</code></td><td><code>sns.stripplot()</code></td></tr></tbody></table></div>
+<div class="pager"><a href="ch04.html">← 4장 수치형 변수 기술통계</a><a href="index.html">목차로 →</a></div>
+</main>
+<footer>※ 이 자료는 『R을 이용한 통계 분석』(김길환) 온라인 교재의 구성을 바탕으로, 파이썬 기준으로 새로 작성한 수업자료입니다.</footer>
+</body></html>

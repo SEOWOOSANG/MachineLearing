@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2장 기술통계 분석이란? - 파이썬으로 배우는 데이터분석과 통계</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<header class="top"><a href="index.html">📊 파이썬으로 배우는 데이터분석과 통계</a>
+<nav><a href="ch01.html">1장</a><a href="ch02.html" class=cur>2장</a><a href="ch03.html">3장</a><a href="ch04.html">4장</a><a href="ch05.html">5장</a></nav></header>
+<main>
+<div class="chead"><div class="cnum">2장</div><h1>기술통계 분석이란?</h1><p class="sub">분석 전에 데이터와 먼저 친해지기</p></div>
+<div class="box goal"><div class="box-title">🎯 이 장에서 배우는 것</div><ul><li>기술통계가 왜 중요한지, 어떤 종류가 있는지 안다.</li><li>데이터 전체를 한 번에 요약(<code>info</code>, <code>describe</code>)할 수 있다.</li><li>빈칸(결측치)이 얼마나 있는지 확인할 수 있다.</li><li>변수들의 관계를 한 장의 그림(<code>pairplot</code>)으로 볼 수 있다.</li></ul></div>
+<div class="toc"><b>이 장의 목차</b><a href="#s1">2.1 기술통계 기법의 중요성</a><a href="#s2">2.2 기술통계 기법의 분류</a><a href="#s3">2.3 실습 데이터 살펴보기</a><a href="#s4">2.4 데이터 전체에 대한 요약 정보 파악하기</a></div>
+<h2 id="s1">2.1 기술통계 기법의 중요성</h2><p>많은 사람들이 데이터를 받자마자 어려운 통계 기법부터 적용하려 합니다. 하지만 그 전에 <b>데이터 자체를 충분히 살펴보는 것</b>이 훨씬 중요합니다.</p><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>의사는 처방부터 내지 않습니다. <b>체온·혈압·맥박을 재고 문진</b>을 먼저 하죠. 기술통계는 데이터의 <b>기본 건강검진</b>입니다. 검진 없이 수술(고급 분석)부터 하면 큰일이 나요.</p></div><ul><li>데이터 안에 어떤 패턴이 있는지 요약해 준다.</li><li>잘못 입력된 값, 빈칸 같은 <b>문제</b>를 미리 찾게 해 준다.</li><li>분석 결과를 다른 사람에게 설명할 때 가장 쉬운 <b>소통 도구</b>가 된다.</li></ul><h2 id="s2">2.2 기술통계 기법의 분류</h2><p>기술통계 기법은 세 가지 관점으로 나눠 볼 수 있습니다.</p><div class="tblwrap"><table class="plain "><thead><tr><th>관점</th><th>구분</th></tr></thead><tbody><tr><td>① 표현 방식</td><td>숫자(표·통계치)로 요약 vs 그래프로 요약</td></tr><tr><td>② 변수 종류</td><td>범주형 변수 vs 수치형 변수</td></tr><tr><td>③ 변수 개수</td><td>변수 하나의 분포 vs 변수들 사이의 관계(상관성)</td></tr></tbody></table></div><p>이 관점들을 조합하면 3~5장의 구성이 됩니다.</p><div class="tblwrap"><table class="plain "><thead><tr><th>장</th><th>다루는 대상</th><th>예</th></tr></thead><tbody><tr><td>3장</td><td>범주형 변수 (하나, 둘 이상)</td><td>성별 인원수, 성별×생존 여부 교차표</td></tr><tr><td>4장</td><td>수치형 변수 (하나, 둘 이상)</td><td>금액의 평균·퍼짐, 금액과 팁의 상관관계</td></tr><tr><td>5장</td><td>범주형 × 수치형</td><td>성별에 따른 금액 차이</td></tr></tbody></table></div><h2 id="s3">2.3 실습 데이터 살펴보기</h2><p>먼저 도구를 불러오고 데이터를 읽습니다. (1장과 같은 코드입니다. 새 파일을 시작할 때마다 맨 위에 붙여 넣으세요.)</p><div class="code"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">seaborn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sns</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">platform</span>
+
+<span class="n">sns</span><span class="o">.</span><span class="n">set_theme</span><span class="p">(</span><span class="n">style</span><span class="o">=</span><span class="s1">'whitegrid'</span><span class="p">)</span>             <span class="c1"># 그래프 기본 스타일 (이 줄을 먼저!)</span>
+
+<span class="c1"># 그래프에서 한글이 깨지지 않게 하는 설정 (운영체제에 맞는 글꼴 선택)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">'font.family'</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'Darwin'</span><span class="p">:</span> <span class="s1">'Apple SD Gothic Neo'</span><span class="p">,</span> <span class="s1">'Windows'</span><span class="p">:</span> <span class="s1">'Malgun Gothic'</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">(),</span> <span class="s1">'NanumGothic'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">'axes.unicode_minus'</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>   <span class="c1"># 마이너스(-) 기호 깨짐 방지</span>
+</code></pre></div><div class="code"><pre><code><span class="n">tips</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/tips.csv"</span><span class="p">)</span>
+<span class="n">titanic</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/titanic.csv"</span><span class="p">)</span>
+<span class="n">tips</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>total_bill</th>
+      <th>tip</th>
+      <th>sex</th>
+      <th>smoker</th>
+      <th>day</th>
+      <th>time</th>
+      <th>size</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>16.99</td>
+      <td>1.01</td>
+      <td>Female</td>
+      <td>No</td>
+      <td>Sun</td>
+      <td>Dinner</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>10.34</td>
+      <td>1.66</td>
+      <td>Male</td>
+      <td>No</td>
+      <td>Sun</td>
+      <td>Dinner</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>21.01</td>
+      <td>3.50</td>
+      <td>Male</td>
+      <td>No</td>
+      <td>Sun</td>
+      <td>Dinner</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>23.68</td>
+      <td>3.31</td>
+      <td>Male</td>
+      <td>No</td>
+      <td>Sun</td>
+      <td>Dinner</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>24.59</td>
+      <td>3.61</td>
+      <td>Female</td>
+      <td>No</td>
+      <td>Sun</td>
+      <td>Dinner</td>
+      <td>4</td>
+    </tr>
+  </tbody>
+</table></div></div><div class="tblwrap"><table class="plain "><thead><tr><th>변수명</th><th>뜻</th><th>종류</th></tr></thead><tbody><tr><td>total_bill</td><td>총 계산 금액 (달러)</td><td>수치형</td></tr><tr><td>tip</td><td>팁 (달러)</td><td>수치형</td></tr><tr><td>sex</td><td>계산한 사람의 성별 (Male/Female)</td><td>범주형(명목)</td></tr><tr><td>smoker</td><td>일행 중 흡연자 여부</td><td>범주형(명목)</td></tr><tr><td>day</td><td>요일 (Thur/Fri/Sat/Sun)</td><td>범주형</td></tr><tr><td>time</td><td>식사 시간대 (Lunch/Dinner)</td><td>범주형(명목)</td></tr><tr><td>size</td><td>일행 인원수</td><td>수치형(정수)</td></tr></tbody></table></div><h2 id="s4">2.4 데이터 전체에 대한 요약 정보 파악하기</h2><h3>① info() : 데이터의 ‘신분증’ 확인</h3><p>행·열 개수, 각 열의 자료형, 그리고 <b>비어 있지 않은 값의 개수</b>를 보여 줍니다.</p><div class="code"><pre><code><span class="n">tips</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">&lt;class &#x27;pandas.DataFrame&#x27;&gt;
+RangeIndex: 244 entries, 0 to 243
+Data columns (total 7 columns):
+ #   Column      Non-Null Count  Dtype  
+---  ------      --------------  -----  
+ 0   total_bill  244 non-null    float64
+ 1   tip         244 non-null    float64
+ 2   sex         244 non-null    str    
+ 3   smoker      244 non-null    str    
+ 4   day         244 non-null    str    
+ 5   time        244 non-null    str    
+ 6   size        244 non-null    int64  
+dtypes: float64(2), int64(1), str(4)
+memory usage: 13.5 KB</pre></div><h3>② describe() : 숫자 열의 ‘종합 성적표’</h3><p>수치형 변수마다 개수(count), 평균(mean), 표준편차(std), 최솟값(min), 사분위수(25%, 50%, 75%), 최댓값(max)를 한 번에 계산합니다.</p><div class="code"><pre><code><span class="n">tips</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>total_bill</th>
+      <th>tip</th>
+      <th>size</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>count</th>
+      <td>244.000000</td>
+      <td>244.000000</td>
+      <td>244.000000</td>
+    </tr>
+    <tr>
+      <th>mean</th>
+      <td>19.785943</td>
+      <td>2.998279</td>
+      <td>2.569672</td>
+    </tr>
+    <tr>
+      <th>std</th>
+      <td>8.902412</td>
+      <td>1.383638</td>
+      <td>0.951100</td>
+    </tr>
+    <tr>
+      <th>min</th>
+      <td>3.070000</td>
+      <td>1.000000</td>
+      <td>1.000000</td>
+    </tr>
+    <tr>
+      <th>25%</th>
+      <td>13.347500</td>
+      <td>2.000000</td>
+      <td>2.000000</td>
+    </tr>
+    <tr>
+      <th>50%</th>
+      <td>17.795000</td>
+      <td>2.900000</td>
+      <td>2.000000</td>
+    </tr>
+    <tr>
+      <th>75%</th>
+      <td>24.127500</td>
+      <td>3.562500</td>
+      <td>3.000000</td>
+    </tr>
+    <tr>
+      <th>max</th>
+      <td>50.810000</td>
+      <td>10.000000</td>
+      <td>6.000000</td>
+    </tr>
+  </tbody>
+</table></div></div><p>글자(범주형) 열은 <code>include="object"</code>를 붙이면 요약됩니다. 몇 종류인지(unique), 가장 많은 값(top)과 그 개수(freq)를 알려 줍니다.</p><div class="code"><pre><code><span class="n">tips</span><span class="o">.</span><span class="n">describe</span><span class="p">(</span><span class="n">include</span><span class="o">=</span><span class="s2">"object"</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>sex</th>
+      <th>smoker</th>
+      <th>day</th>
+      <th>time</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>count</th>
+      <td>244</td>
+      <td>244</td>
+      <td>244</td>
+      <td>244</td>
+    </tr>
+    <tr>
+      <th>unique</th>
+      <td>2</td>
+      <td>2</td>
+      <td>4</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>top</th>
+      <td>Male</td>
+      <td>No</td>
+      <td>Sat</td>
+      <td>Dinner</td>
+    </tr>
+    <tr>
+      <th>freq</th>
+      <td>157</td>
+      <td>151</td>
+      <td>87</td>
+      <td>176</td>
+    </tr>
+  </tbody>
+</table></div></div><div class="box rcmp"><div class="box-title">🔁 R에서는?</div><p>R의 <code>summary(course)</code> 한 줄이 파이썬에서는 <code>describe()</code> 두 번(수치형, 범주형)에 해당합니다.</p></div><h3>③ 빈칸(결측치) 찾기</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>결측치(NaN, NA)는 설문지에서 <b>답을 비워 둔 칸</b>입니다. 빈칸이 있는 채로 평균을 내면 계산이 틀어질 수 있어서, 얼마나 있는지부터 확인해야 해요.</p></div><p>tips 데이터는 빈칸이 없지만, 타이타닉 데이터에는 있습니다. 열별로 빈칸 개수를 세어 봅시다. (<code>isna()</code>는 “빈칸이니?”라고 묻고, <code>sum()</code>은 ‘예’의 개수를 셉니다.)</p><div class="code"><pre><code><span class="n">titanic</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>0</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>survived</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>pclass</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>sex</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>age</th>
+      <td>177</td>
+    </tr>
+    <tr>
+      <th>sibsp</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>parch</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>fare</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>embarked</th>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>class</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>who</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>adult_male</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>deck</th>
+      <td>688</td>
+    </tr>
+    <tr>
+      <th>embark_town</th>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>alive</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>alone</th>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table></div></div><div class="code"><pre><code><span class="n">titanic</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span>   <span class="c1"># 나이(age)는 891명 중 714명만 값이 있어서 count가 더 적음</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>survived</th>
+      <th>pclass</th>
+      <th>age</th>
+      <th>sibsp</th>
+      <th>parch</th>
+      <th>fare</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>count</th>
+      <td>891.000000</td>
+      <td>891.000000</td>
+      <td>714.000000</td>
+      <td>891.000000</td>
+      <td>891.000000</td>
+      <td>891.000000</td>
+    </tr>
+    <tr>
+      <th>mean</th>
+      <td>0.383838</td>
+      <td>2.308642</td>
+      <td>29.699118</td>
+      <td>0.523008</td>
+      <td>0.381594</td>
+      <td>32.204208</td>
+    </tr>
+    <tr>
+      <th>std</th>
+      <td>0.486592</td>
+      <td>0.836071</td>
+      <td>14.526497</td>
+      <td>1.102743</td>
+      <td>0.806057</td>
+      <td>49.693429</td>
+    </tr>
+    <tr>
+      <th>min</th>
+      <td>0.000000</td>
+      <td>1.000000</td>
+      <td>0.420000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+    </tr>
+    <tr>
+      <th>25%</th>
+      <td>0.000000</td>
+      <td>2.000000</td>
+      <td>20.125000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>7.910400</td>
+    </tr>
+    <tr>
+      <th>50%</th>
+      <td>0.000000</td>
+      <td>3.000000</td>
+      <td>28.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>14.454200</td>
+    </tr>
+    <tr>
+      <th>75%</th>
+      <td>1.000000</td>
+      <td>3.000000</td>
+      <td>38.000000</td>
+      <td>1.000000</td>
+      <td>0.000000</td>
+      <td>31.000000</td>
+    </tr>
+    <tr>
+      <th>max</th>
+      <td>1.000000</td>
+      <td>3.000000</td>
+      <td>80.000000</td>
+      <td>8.000000</td>
+      <td>6.000000</td>
+      <td>512.329200</td>
+    </tr>
+  </tbody>
+</table></div></div><div class="box tip"><div class="box-title">💡 알아두기</div><p>pandas의 <code>mean()</code>, <code>describe()</code> 등은 빈칸을 <b>자동으로 빼고</b> 계산합니다. (R은 기본적으로 빈칸이 있으면 결과도 NA가 되어 <code>na.rm=TRUE</code>를 써야 했는데, 파이썬은 반대로 기본이 ‘빼고 계산’입니다.)</p></div><h3>④ pairplot() : 변수들의 관계를 한 장으로</h3><p>모든 수치형 변수를 둘씩 짝지어 <b>산점도</b>(점 그래프)를 그려 주는 그림입니다. 대각선에는 각 변수의 분포(히스토그램)가 나옵니다.</p><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>반 친구들의 <b>키와 몸무게</b>를 좌표평면에 점으로 찍는다고 생각해 보세요. 점들이 우상향으로 모이면 “키가 클수록 몸무게도 나간다”는 관계가 눈에 보이죠. <code>pairplot</code>은 모든 변수 쌍에 대해 이 그림을 한꺼번에 그려 줍니다.</p></div><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">pairplot</span><span class="p">(</span><span class="n">tips</span><span class="p">[[</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="s2">"tip"</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">]])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch02_01.png" alt="그래프 1"></div><p><code>total_bill</code>과 <code>tip</code> 칸의 점들이 오른쪽 위로 올라가는 모양이면 “금액이 클수록 팁도 많다”는 관계를 의심해 볼 수 있습니다. 구체적인 숫자(상관계수)로 확인하는 방법은 4장에서 배웁니다.</p><div class="tblwrap"><table class="plain "><thead><tr><th>하고 싶은 일</th><th>R</th><th>파이썬</th></tr></thead><tbody><tr><td>전체 요약</td><td><code>summary(df)</code></td><td><code>df.describe()</code>, <code>df.info()</code></td></tr><tr><td>변수 간 관계 그림</td><td><code>plot(df)</code></td><td><code>sns.pairplot(df)</code></td></tr><tr><td>빈칸 세기</td><td><code>colSums(is.na(df))</code></td><td><code>df.isna().sum()</code></td></tr></tbody></table></div>
+<div class="pager"><a href="ch01.html">← 1장 통계 분석이란?</a><a href="ch03.html">3장 범주형 변수 기술통계 →</a></div>
+</main>
+<footer>※ 이 자료는 『R을 이용한 통계 분석』(김길환) 온라인 교재의 구성을 바탕으로, 파이썬 기준으로 새로 작성한 수업자료입니다.</footer>
+</body></html>

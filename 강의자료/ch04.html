@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>4장 수치형 변수 기술통계 - 파이썬으로 배우는 데이터분석과 통계</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<header class="top"><a href="index.html">📊 파이썬으로 배우는 데이터분석과 통계</a>
+<nav><a href="ch01.html">1장</a><a href="ch02.html">2장</a><a href="ch03.html">3장</a><a href="ch04.html" class=cur>4장</a><a href="ch05.html">5장</a></nav></header>
+<main>
+<div class="chead"><div class="cnum">4장</div><h1>수치형 변수 기술통계</h1><p class="sub">숫자 데이터의 ‘중심’, ‘퍼짐’, ‘모양’ 읽기</p></div>
+<div class="box goal"><div class="box-title">🎯 이 장에서 배우는 것</div><ul><li>평균·중위수, 표준편차·IQR, 왜도·첨도의 의미를 설명할 수 있다.</li><li>히스토그램·밀도그래프·상자그림·Q-Q 그림을 그리고 읽을 수 있다.</li><li>한쪽으로 치우친 데이터를 로그 변환 등으로 다듬을 수 있다.</li><li>두 수치형 변수의 <b>상관계수</b>와 <b>산점도·추세선</b>을 해석할 수 있다.</li></ul></div>
+<div class="toc"><b>이 장의 목차</b><a href="#s1">4.1 한 수치형 변수의 분포 분석</a><a href="#s2">4.2 둘 이상의 수치형 변수의 상관성 분석</a></div>
+<div class="code"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">seaborn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sns</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">platform</span>
+
+<span class="n">sns</span><span class="o">.</span><span class="n">set_theme</span><span class="p">(</span><span class="n">style</span><span class="o">=</span><span class="s1">'whitegrid'</span><span class="p">)</span>             <span class="c1"># 그래프 기본 스타일 (이 줄을 먼저!)</span>
+
+<span class="c1"># 그래프에서 한글이 깨지지 않게 하는 설정 (운영체제에 맞는 글꼴 선택)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">'font.family'</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'Darwin'</span><span class="p">:</span> <span class="s1">'Apple SD Gothic Neo'</span><span class="p">,</span> <span class="s1">'Windows'</span><span class="p">:</span> <span class="s1">'Malgun Gothic'</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">(),</span> <span class="s1">'NanumGothic'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">'axes.unicode_minus'</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>   <span class="c1"># 마이너스(-) 기호 깨짐 방지</span>
+</code></pre></div><div class="code"><pre><code><span class="n">tips</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/tips.csv"</span><span class="p">)</span>
+<span class="n">diamonds</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/diamonds.csv"</span><span class="p">)</span>
+<span class="n">titanic</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/titanic.csv"</span><span class="p">)</span>
+
+<span class="n">bill</span> <span class="o">=</span> <span class="n">tips</span><span class="p">[</span><span class="s2">"total_bill"</span><span class="p">]</span>    <span class="c1"># 앞으로 자주 쓸 ‘총 계산 금액’ 열에 짧은 이름 붙이기</span>
+<span class="n">bill</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>total_bill</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>16.99</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>10.34</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>21.01</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>23.68</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>24.59</td>
+    </tr>
+  </tbody>
+</table></div></div><h2 id="s1">4.1 한 수치형 변수의 분포 분석</h2><p>수치형 변수 하나를 설명하는 방법은 세 가지 질문으로 정리됩니다.</p><div class="tblwrap"><table class="plain "><thead><tr><th>질문</th><th>알려 주는 통계량</th><th>비유</th></tr></thead><tbody><tr><td>① 중심은 어디인가?</td><td>평균, 중위수</td><td>“우리 반 키는 보통 어느 정도?”</td></tr><tr><td>② 얼마나 퍼져 있나?</td><td>분산, 표준편차, 범위, IQR</td><td>“키가 다들 비슷한가, 들쭉날쭉한가?”</td></tr><tr><td>③ 모양은 어떤가?</td><td>왜도, 첨도</td><td>“한쪽으로 쏠려 있나? 뾰족한가?”</td></tr></tbody></table></div><h3>4.1.1 숫자로 요약하기</h3><h3>① 중심 경향: 평균과 중위수</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>5명이 월급을 말합니다: 300, 320, 340, 360, <b>5,000</b>(만원). <b>평균</b>은 모두의 월급을 똑같이 나누면 얼마인지(1,264만원)를 뜻하지만, 사장님 한 명 때문에 ‘우리 대부분의 현실’과 동떨어졌죠. 반면 <b>중위수</b>는 일렬로 줄 세웠을 때 <b>정확히 가운데 사람의 값</b>(340만원)이라, 극단적인 값에 흔들리지 않습니다. 평균은 시소의 <b>무게중심</b>, 중위수는 <b>줄 세우기의 한가운데</b>입니다.</p></div><div class="code"><pre><code><span class="nb">print</span><span class="p">(</span><span class="s2">"평균   :"</span><span class="p">,</span> <span class="n">bill</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"중위수 :"</span><span class="p">,</span> <span class="n">bill</span><span class="o">.</span><span class="n">median</span><span class="p">())</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">평균   : 19.78594262295082
+중위수 : 17.795</pre></div><p>평균이 중위수보다 큰 것은 비싼 계산서 몇 건이 평균을 끌어올렸다는 신호입니다. (분포가 오른쪽으로 길게 늘어진 모양)</p><div class="code"><pre><code><span class="n">salary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">300</span><span class="p">,</span> <span class="mi">320</span><span class="p">,</span> <span class="mi">340</span><span class="p">,</span> <span class="mi">360</span><span class="p">,</span> <span class="mi">5000</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"평균:"</span><span class="p">,</span> <span class="n">salary</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="s2">"/ 중위수:"</span><span class="p">,</span> <span class="n">salary</span><span class="o">.</span><span class="n">median</span><span class="p">())</span>   <span class="c1"># 위 비유 확인</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">평균: 1264.0 / 중위수: 340.0</pre></div><h3>② 퍼진 정도: 분산·표준편차·변동계수</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>두 양궁 선수가 모두 평균 9점을 쐈다고 해도, A는 늘 8~10점 사이, B는 3점과 10점을 오갈 수 있습니다. ‘평균’만으로는 안정감을 알 수 없죠. 이 <b>들쭉날쭉한 정도</b>를 숫자로 만든 것이 <b>표준편차</b>입니다. “평균에서 보통 이 정도 떨어져 있다”로 읽으면 됩니다. <b>분산</b>은 표준편차를 제곱한 값입니다. (단위가 제곱이라 해석은 표준편차가 쉽습니다.)</p></div><div class="code"><pre><code><span class="nb">print</span><span class="p">(</span><span class="s2">"분산      :"</span><span class="p">,</span> <span class="n">bill</span><span class="o">.</span><span class="n">var</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"표준편차  :"</span><span class="p">,</span> <span class="n">bill</span><span class="o">.</span><span class="n">std</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"변동계수  :"</span><span class="p">,</span> <span class="n">bill</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">/</span> <span class="n">bill</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>   <span class="c1"># 표준편차 ÷ 평균</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">분산      : 79.25293861397827
+표준편차  : 8.902411954856856
+변동계수  : 0.44993620594706724</pre></div><div class="box tip"><div class="box-title">💡 알아두기</div><p><b>변동계수</b>는 ‘평균 대비 퍼짐의 비율’이라 <b>단위가 달라도 비교</b>할 수 있습니다. 예: 몸무게(kg)와 키(cm) 중 어느 쪽이 더 들쭉날쭉한지는 표준편차끼리 비교할 수 없지만, 변동계수로는 비교됩니다.</p></div><h3>③ 위치로 말하기: 분위수와 IQR</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>전교생을 키 순서대로 한 줄로 세웁니다. 앞에서 25% 지점 사람의 키가 <b>1사분위수(Q1)</b>, 정중앙(50%)이 <b>중위수</b>, 75% 지점이 <b>3사분위수(Q3)</b>입니다. <b>IQR = Q3 − Q1</b>은 ‘가운데 절반의 학생들이 퍼져 있는 폭’입니다. 양쪽 끝의 극단값은 무시하기 때문에 이상치에 강합니다.</p></div><div class="code"><pre><code><span class="nb">print</span><span class="p">(</span><span class="n">bill</span><span class="o">.</span><span class="n">quantile</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">()</span>
+<span class="n">q1</span><span class="p">,</span> <span class="n">q3</span> <span class="o">=</span> <span class="n">bill</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="mf">0.25</span><span class="p">),</span> <span class="n">bill</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="mf">0.75</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"IQR :"</span><span class="p">,</span> <span class="n">q3</span> <span class="o">-</span> <span class="n">q1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"범위(최댓값-최솟값):"</span><span class="p">,</span> <span class="n">bill</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">bill</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">0.00     3.0700
+0.25    13.3475
+0.50    17.7950
+0.75    24.1275
+1.00    50.8100
+Name: total_bill, dtype: float64
+
+IQR : 10.779999999999998
+범위(최댓값-최솟값): 47.74</pre></div><p>그 밖에 이상치에 강한 퍼짐 지표로 <b>중앙값 절대편차(MAD)</b>가 있습니다. “각 값이 중위수에서 떨어진 거리의 중위수”입니다.</p><div class="code"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">stats</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"MAD:"</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">median_abs_deviation</span><span class="p">(</span><span class="n">bill</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="s2">"normal"</span><span class="p">))</span>   <span class="c1"># R의 mad()와 같은 방식</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">MAD: 7.457489159083178</pre></div><h3>④ 분포의 모양: 왜도와 첨도</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p><b>왜도</b>는 산이 <b>한쪽으로 기울어진 정도</b>입니다. 소득 분포처럼 대부분은 오른쪽(낮은 값)에 몰려 있고 소수의 부자가 오른쪽 꼬리를 길게 늘어뜨리면 왜도가 <b>양수(+)</b>입니다. <b>첨도</b>는 산 <b>꼭대기가 뾰족한 정도</b>(꼬리가 두꺼운 정도)입니다. 정규분포(종 모양)를 기준(0)으로 삼아 더 뾰족하면 +, 납작하면 −입니다.</p></div><div class="code"><pre><code><span class="nb">print</span><span class="p">(</span><span class="s2">"왜도:"</span><span class="p">,</span> <span class="n">bill</span><span class="o">.</span><span class="n">skew</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"첨도:"</span><span class="p">,</span> <span class="n">bill</span><span class="o">.</span><span class="n">kurt</span><span class="p">())</span>   <span class="c1"># pandas의 kurt()는 정규분포를 0으로 맞춘 값</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">왜도: 1.1332130376158205
+첨도: 1.2184840156638854</pre></div><div class="tblwrap"><table class="plain "><thead><tr><th>값</th><th>해석</th></tr></thead><tbody><tr><td>왜도 ≈ 0</td><td>좌우 대칭</td></tr><tr><td>왜도 > 0</td><td>오른쪽 꼬리가 김 (비싼 값 몇 개가 끌어올림)</td></tr><tr><td>왜도 < 0</td><td>왼쪽 꼬리가 김</td></tr><tr><td>첨도 > 0</td><td>정규분포보다 뾰족하고 꼬리가 두꺼움 (극단값이 더 자주 나옴)</td></tr><tr><td>첨도 < 0</td><td>정규분포보다 납작함</td></tr></tbody></table></div><h3>⑤ 한 번에 보기: describe()</h3><div class="code"><pre><code><span class="n">tips</span><span class="p">[[</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="s2">"tip"</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">]]</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>total_bill</th>
+      <th>tip</th>
+      <th>size</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>count</th>
+      <td>244.00</td>
+      <td>244.00</td>
+      <td>244.00</td>
+    </tr>
+    <tr>
+      <th>mean</th>
+      <td>19.79</td>
+      <td>3.00</td>
+      <td>2.57</td>
+    </tr>
+    <tr>
+      <th>std</th>
+      <td>8.90</td>
+      <td>1.38</td>
+      <td>0.95</td>
+    </tr>
+    <tr>
+      <th>min</th>
+      <td>3.07</td>
+      <td>1.00</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <th>25%</th>
+      <td>13.35</td>
+      <td>2.00</td>
+      <td>2.00</td>
+    </tr>
+    <tr>
+      <th>50%</th>
+      <td>17.80</td>
+      <td>2.90</td>
+      <td>2.00</td>
+    </tr>
+    <tr>
+      <th>75%</th>
+      <td>24.13</td>
+      <td>3.56</td>
+      <td>3.00</td>
+    </tr>
+    <tr>
+      <th>max</th>
+      <td>50.81</td>
+      <td>10.00</td>
+      <td>6.00</td>
+    </tr>
+  </tbody>
+</table></div></div><div class="box rcmp"><div class="box-title">🔁 R에서는?</div><p>R의 <code>psych::describe()</code>가 하는 일을, 파이썬에서는 <code>describe()</code>(기본 통계) + <code>skew()</code>·<code>kurt()</code>(모양)로 나누어 합니다. 아래처럼 한 표로 합칠 수도 있습니다.</p></div><div class="code"><pre><code><span class="n">num</span> <span class="o">=</span> <span class="n">tips</span><span class="p">[[</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="s2">"tip"</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">]]</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="n">num</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span><span class="o">.</span><span class="n">T</span>                  <span class="c1"># .T : 행과 열 뒤집기(전치)</span>
+<span class="n">summary</span><span class="p">[</span><span class="s2">"왜도"</span><span class="p">]</span> <span class="o">=</span> <span class="n">num</span><span class="o">.</span><span class="n">skew</span><span class="p">()</span>
+<span class="n">summary</span><span class="p">[</span><span class="s2">"첨도"</span><span class="p">]</span> <span class="o">=</span> <span class="n">num</span><span class="o">.</span><span class="n">kurt</span><span class="p">()</span>
+<span class="n">summary</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>count</th>
+      <th>mean</th>
+      <th>std</th>
+      <th>min</th>
+      <th>25%</th>
+      <th>50%</th>
+      <th>75%</th>
+      <th>max</th>
+      <th>왜도</th>
+      <th>첨도</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>total_bill</th>
+      <td>244.0</td>
+      <td>19.79</td>
+      <td>8.90</td>
+      <td>3.07</td>
+      <td>13.35</td>
+      <td>17.8</td>
+      <td>24.13</td>
+      <td>50.81</td>
+      <td>1.13</td>
+      <td>1.22</td>
+    </tr>
+    <tr>
+      <th>tip</th>
+      <td>244.0</td>
+      <td>3.00</td>
+      <td>1.38</td>
+      <td>1.00</td>
+      <td>2.00</td>
+      <td>2.9</td>
+      <td>3.56</td>
+      <td>10.00</td>
+      <td>1.47</td>
+      <td>3.65</td>
+    </tr>
+    <tr>
+      <th>size</th>
+      <td>244.0</td>
+      <td>2.57</td>
+      <td>0.95</td>
+      <td>1.00</td>
+      <td>2.00</td>
+      <td>2.0</td>
+      <td>3.00</td>
+      <td>6.00</td>
+      <td>1.45</td>
+      <td>1.73</td>
+    </tr>
+  </tbody>
+</table></div></div><h3>⑥ 도수분포표: 구간으로 나누어 세기</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>점수를 하나하나 세는 대신 “90점대 몇 명, 80점대 몇 명”으로 <b>구간(칸)</b>에 나누어 세는 방법입니다. 성적 분포표를 만들 듯이요. 구간으로 나누는 도구가 <code>pd.cut()</code>입니다.</p></div><div class="code"><pre><code><span class="n">bins</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">60</span><span class="p">]</span>
+<span class="n">grade</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">cut</span><span class="p">(</span><span class="n">bill</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">,</span> <span class="n">include_lowest</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>   <span class="c1"># 계산 금액을 10달러 단위 구간으로 나누기</span>
+<span class="n">grade</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>count</th>
+    </tr>
+    <tr>
+      <th>total_bill</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>(-0.001, 10.0]</th>
+      <td>17</td>
+    </tr>
+    <tr>
+      <th>(10.0, 20.0]</th>
+      <td>130</td>
+    </tr>
+    <tr>
+      <th>(20.0, 30.0]</th>
+      <td>65</td>
+    </tr>
+    <tr>
+      <th>(30.0, 40.0]</th>
+      <td>22</td>
+    </tr>
+    <tr>
+      <th>(40.0, 50.0]</th>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>(50.0, 60.0]</th>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table></div></div><h3>4.1.2 그래프로 요약하기</h3><h3>① 히스토그램</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>히스토그램은 <b>도수분포표를 그림으로 그린 것</b>입니다. 구간별로 ‘몇 개가 속하는지’를 막대 높이로 쌓습니다. 막대 사이가 <b>붙어 있는 이유</b>는 숫자가 끊기지 않고 이어지는 값이기 때문이에요. (막대그래프는 범주라서 떨어져 있었죠.)</p></div><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>   <span class="c1"># bins: 구간(막대) 개수</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"계산 금액의 분포"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"총 계산 금액($)"</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"팀 수"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch04_01.png" alt="그래프 1"></div><div class="box warn"><div class="box-title">⚠️ 주의</div><p>구간(bins) 수에 따라 모양이 달라집니다. 너무 적으면 뭉뚱그려져서 특징이 사라지고, 너무 많으면 들쭉날쭉해서 잡음이 보입니다. 여러 값으로 바꿔 보며 적절한 모양을 찾으세요. 아래는 구간을 5개 / 15개 / 50개로 비교한 모습입니다.</p></div><div class="code"><pre><code><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">13</span><span class="p">,</span> <span class="mf">3.3</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">50</span><span class="p">]):</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">b</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">"구간 </span><span class="si">{</span><span class="n">b</span><span class="si">}</span><span class="s2">개"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch04_02.png" alt="그래프 2"></div><h3>② 확률밀도 그래프</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>히스토그램의 울퉁불퉁한 계단을 <b>부드러운 언덕 모양의 곡선</b>으로 다듬은 것입니다. 모래를 쌓아 만든 모래 언덕의 윤곽선이라고 생각하세요. 곡선 아래 전체 면적은 1(100%)입니다.</p></div><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">stat</span><span class="o">=</span><span class="s2">"density"</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.4</span><span class="p">)</span>   <span class="c1"># 높이를 ‘밀도’ 단위로</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">kdeplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"crimson"</span><span class="p">)</span>                       <span class="c1"># 부드러운 곡선 겹치기</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"계산 금액의 확률밀도"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch04_03.png" alt="그래프 3"></div><h3>③ 상자 그림 (Box plot)</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>상자 그림은 데이터를 <b>다섯 숫자 요약</b>으로 그린 ‘얼굴 사진’입니다. 상자 = 가운데 50%의 사람들이 사는 집, 상자 안의 선 = 중위수, 수염 = 일반적인 범위, 수염 밖의 점 = <b>튀는 값(이상치)</b>입니다.</p></div><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">boxplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"계산 금액 상자 그림"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch04_04.png" alt="그래프 4"></div><div class="tblwrap"><table class="plain "><thead><tr><th>그림의 부분</th><th>뜻</th></tr></thead><tbody><tr><td>상자 아래/위 경계</td><td>1사분위수(Q1) / 3사분위수(Q3)</td></tr><tr><td>상자 안 가로선</td><td>중위수</td></tr><tr><td>수염 끝</td><td>Q1−1.5×IQR ~ Q3+1.5×IQR 범위 안의 최솟값/최댓값</td></tr><tr><td>수염 밖 점</td><td>이상치(평소와 동떨어진 값)</td></tr></tbody></table></div><p>이상치로 분류되는 기준(수염의 한계)은 <b>1.5×IQR</b> 규칙입니다. 직접 계산해서 어떤 값들이 이상치로 찍히는지 확인해 봅시다.</p><div class="code"><pre><code><span class="n">upper</span> <span class="o">=</span> <span class="n">q3</span> <span class="o">+</span> <span class="mf">1.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">q3</span> <span class="o">-</span> <span class="n">q1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"이상치 기준(상한):"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">upper</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">bill</span><span class="p">[</span><span class="n">bill</span> <span class="o">&gt;</span> <span class="n">upper</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">이상치 기준(상한): 40.3</pre><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>total_bill</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>184</th>
+      <td>40.55</td>
+    </tr>
+    <tr>
+      <th>142</th>
+      <td>41.19</td>
+    </tr>
+    <tr>
+      <th>197</th>
+      <td>43.11</td>
+    </tr>
+    <tr>
+      <th>102</th>
+      <td>44.30</td>
+    </tr>
+    <tr>
+      <th>182</th>
+      <td>45.35</td>
+    </tr>
+    <tr>
+      <th>156</th>
+      <td>48.17</td>
+    </tr>
+    <tr>
+      <th>59</th>
+      <td>48.27</td>
+    </tr>
+    <tr>
+      <th>212</th>
+      <td>48.33</td>
+    </tr>
+    <tr>
+      <th>170</th>
+      <td>50.81</td>
+    </tr>
+  </tbody>
+</table></div></div><h3>④ Q-Q 그림: 정규분포(종 모양)와 얼마나 닮았나?</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>Q-Q 그림은 <b>자 대보기</b>입니다. ‘이상적인 종 모양’이 만든 눈금과 우리 데이터의 눈금을 나란히 놓고, 점들이 <b>대각선 위에 곧게 놓이면</b> 정규분포와 닮았다는 뜻이에요. 곡선으로 휘어지면 어딘가 치우쳐 있다는 신호입니다.</p></div><div class="code"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">statsmodels.api</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sm</span>
+
+<span class="n">sm</span><span class="o">.</span><span class="n">qqplot</span><span class="p">(</span><span class="n">bill</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="s2">"s"</span><span class="p">)</span>     <span class="c1"># line="s": 비교용 대각선 그리기</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"계산 금액의 Q-Q 그림"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch04_05.png" alt="그래프 5"></div><p>오른쪽 끝에서 점들이 직선 위로 휘어 올라갑니다. 비싼 금액이 정규분포가 기대하는 것보다 많다는 뜻으로, 오른쪽 꼬리가 길다는 앞선 결과(왜도 > 0)와 일치합니다.</p><h3>4.1.3 수치형 변수 변환</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>한쪽으로 치우친 데이터는 <b>세로로 너무 긴 사진</b>과 같습니다. 한 화면에 담으려면 사진을 <b>줄여서(압축)</b> 비율을 맞추어야 하죠. 로그 변환은 큰 값은 많이 줄이고 작은 값은 적게 줄여서 분포를 고르게 만듭니다. 지진의 ‘진도’나 소리의 ‘데시벨’도 큰 숫자를 다루기 쉽게 로그로 압축한 값이에요.</p></div><p>다이아몬드 가격(<code>price</code>)은 비싼 다이아몬드가 소수라 오른쪽 꼬리가 아주 깁니다.</p><div class="code"><pre><code><span class="n">price</span> <span class="o">=</span> <span class="n">diamonds</span><span class="p">[</span><span class="s2">"price"</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"왜도:"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">price</span><span class="o">.</span><span class="n">skew</span><span class="p">(),</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">(</span><span class="n">price</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"다이아몬드 가격 (원래 값)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">왜도: 1.62</pre><img class="fig" src="images/ch04_06.png" alt="그래프 6"></div><p>로그를 취하면 어떻게 달라질까요? <code>np.log10()</code>은 ‘10의 몇 제곱인가’를 계산합니다. (예: 1000 → 3)</p><div class="code"><pre><code><span class="n">diamonds</span><span class="p">[</span><span class="s2">"price_log10"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">diamonds</span><span class="p">[</span><span class="s2">"price"</span><span class="p">])</span>    <span class="c1"># 새 열로 저장</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"왜도:"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">diamonds</span><span class="p">[</span><span class="s2">"price_log10"</span><span class="p">]</span><span class="o">.</span><span class="n">skew</span><span class="p">(),</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">(</span><span class="n">diamonds</span><span class="p">[</span><span class="s2">"price_log10"</span><span class="p">],</span> <span class="n">bins</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"다이아몬드 가격 (log10 변환 후)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">왜도: 0.12</pre><img class="fig" src="images/ch04_07.png" alt="그래프 7"></div><p>그래프만 로그 눈금으로 보고 싶다면, 데이터는 두고 축만 바꿀 수도 있습니다. 이때 축의 숫자는 원래 가격 그대로 읽을 수 있어 편리합니다.</p><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">diamonds</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"price"</span><span class="p">,</span> <span class="n">log_scale</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"다이아몬드 가격 (축만 로그 눈금)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch04_08.png" alt="그래프 8"></div><p><b>제곱근(√)</b> 변환도 비슷한 효과가 있지만, 꼬리가 아주 길 때는 로그가 더 강력합니다.</p><div class="code"><pre><code><span class="n">diamonds</span><span class="p">[</span><span class="s2">"price_sqrt"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">diamonds</span><span class="p">[</span><span class="s2">"price"</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"원래 왜도 :"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">price</span><span class="o">.</span><span class="n">skew</span><span class="p">(),</span> <span class="mi">2</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"제곱근 후  :"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">diamonds</span><span class="p">[</span><span class="s2">"price_sqrt"</span><span class="p">]</span><span class="o">.</span><span class="n">skew</span><span class="p">(),</span> <span class="mi">2</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"로그 후     :"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">diamonds</span><span class="p">[</span><span class="s2">"price_log10"</span><span class="p">]</span><span class="o">.</span><span class="n">skew</span><span class="p">(),</span> <span class="mi">2</span><span class="p">))</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">원래 왜도 : 1.62
+제곱근 후  : 0.84
+로그 후     : 0.12</pre></div><h3>Box-Cox 변환: 가장 알맞은 변환을 자동으로 찾기</h3><p>로그, 제곱근, 제곱 등은 모두 ‘거듭제곱’의 친구들입니다. <b>Box-Cox 변환</b>은 분포를 정규분포에 가장 가깝게 만드는 거듭제곱 값(λ, 람다)을 컴퓨터가 알아서 찾아 줍니다.</p><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>라디오 주파수를 돌려 가장 잡음 없이 깨끗한 채널을 찾는 것과 같습니다. 로그(λ=0), 제곱근(λ=0.5) 같은 여러 채널을 두루 시도해 보고 가장 선명한 채널을 골라 줍니다.</p></div><div class="code"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">stats</span>
+
+<span class="n">price_bc</span><span class="p">,</span> <span class="n">lam</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">boxcox</span><span class="p">(</span><span class="n">diamonds</span><span class="p">[</span><span class="s2">"price"</span><span class="p">])</span>    <span class="c1"># 변환된 값과 최적 λ를 함께 돌려줌</span>
+<span class="n">diamonds</span><span class="p">[</span><span class="s2">"price_bc"</span><span class="p">]</span> <span class="o">=</span> <span class="n">price_bc</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"최적 λ ="</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">lam</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Box-Cox 후 왜도:"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">diamonds</span><span class="p">[</span><span class="s2">"price_bc"</span><span class="p">]</span><span class="o">.</span><span class="n">skew</span><span class="p">(),</span> <span class="mi">3</span><span class="p">))</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">최적 λ = -0.067
+Box-Cox 후 왜도: 0.026</pre></div><div class="box tip"><div class="box-title">💡 알아두기</div><p>λ가 0에 가까우면 로그 변환과 비슷하다는 뜻입니다. 단, Box-Cox는 <b>0보다 큰 값</b>에만 쓸 수 있습니다. R의 <code>car::powerTransform()</code> + <code>bcPower()</code>가 파이썬의 <code>scipy.stats.boxcox()</code>에 해당합니다.</p></div><h2 id="s2">4.2 둘 이상의 수치형 변수의 상관성 분석</h2><h3>4.2.1 상관계수</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p><b>상관계수 r</b>은 ‘두 변수가 얼마나 같이 움직이는가’를 −1에서 +1 사이 한 숫자로 나타낸 값입니다. <b>키와 몸무게</b>는 한쪽이 클수록 다른 쪽도 커지니 r이 +에 가깝고, <b>기온과 난방비</b>는 한쪽이 높아지면 다른 쪽이 줄어드니 −에 가깝고, <b>신발 사이즈와 수학 점수</b>는 무관하니 0 근처입니다. <b>같이 춤추는 정도</b>라고 생각하세요.</p></div><div class="tblwrap"><table class="plain "><thead><tr><th>r 값</th><th>해석</th></tr></thead><tbody><tr><td>+1에 가까움</td><td>한쪽이 오르면 다른 쪽도 거의 정확히 같이 오름 (강한 양의 관계)</td></tr><tr><td>0 근처</td><td>서로 관련 없음</td></tr><tr><td>−1에 가까움</td><td>한쪽이 오르면 다른 쪽은 거의 정확히 내림 (강한 음의 관계)</td></tr></tbody></table></div><p>피어슨 상관계수는 ‘직선’ 관계의 세기를 측정합니다. 계산은 <code>corr()</code>로 합니다.</p><div class="code"><pre><code><span class="nb">print</span><span class="p">(</span><span class="s2">"총금액 vs 팁:"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">tips</span><span class="p">[</span><span class="s2">"total_bill"</span><span class="p">]</span><span class="o">.</span><span class="n">corr</span><span class="p">(</span><span class="n">tips</span><span class="p">[</span><span class="s2">"tip"</span><span class="p">]),</span> <span class="mi">3</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">()</span>
+<span class="n">tips</span><span class="p">[[</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="s2">"tip"</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">]]</span><span class="o">.</span><span class="n">corr</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>   <span class="c1"># 모든 쌍을 한 번에: 상관행렬</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">총금액 vs 팁: 0.676</pre><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>total_bill</th>
+      <th>tip</th>
+      <th>size</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>total_bill</th>
+      <td>1.000</td>
+      <td>0.676</td>
+      <td>0.598</td>
+    </tr>
+    <tr>
+      <th>tip</th>
+      <td>0.676</td>
+      <td>1.000</td>
+      <td>0.489</td>
+    </tr>
+    <tr>
+      <th>size</th>
+      <td>0.598</td>
+      <td>0.489</td>
+      <td>1.000</td>
+    </tr>
+  </tbody>
+</table></div></div><div class="tblwrap"><table class="plain "><thead><tr><th>|r| 크기 (Cohen의 기준)</th><th>해석</th></tr></thead><tbody><tr><td>0.5 이상</td><td>상관성이 크고 강함</td></tr><tr><td>약 0.3</td><td>중간 정도</td></tr><tr><td>약 0.1</td><td>작고 약함</td></tr></tbody></table></div><div class="box warn"><div class="box-title">⚠️ 주의</div><p><b>상관관계 ≠ 인과관계</b>. 아이스크림 판매량과 물놀이 사고는 같이 늘지만, 아이스크림이 사고를 일으키는 것은 아닙니다. ‘더운 날씨’라는 제3의 요인이 둘을 함께 움직이죠.</p></div><h3>결측치(빈칸)가 있을 때</h3><p>타이타닉의 나이(<code>age</code>)에는 빈칸이 있습니다. pandas의 <code>corr()</code>는 <b>빈칸이 있는 쌍을 자동으로 제외</b>하고 계산합니다. (R의 <code>use="pairwise.complete.obs"</code>가 기본값인 셈입니다.)</p><div class="code"><pre><code><span class="n">titanic</span><span class="p">[[</span><span class="s2">"age"</span><span class="p">,</span> <span class="s2">"fare"</span><span class="p">,</span> <span class="s2">"sibsp"</span><span class="p">,</span> <span class="s2">"parch"</span><span class="p">]]</span><span class="o">.</span><span class="n">corr</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>age</th>
+      <th>fare</th>
+      <th>sibsp</th>
+      <th>parch</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>age</th>
+      <td>1.000</td>
+      <td>0.096</td>
+      <td>-0.308</td>
+      <td>-0.189</td>
+    </tr>
+    <tr>
+      <th>fare</th>
+      <td>0.096</td>
+      <td>1.000</td>
+      <td>0.160</td>
+      <td>0.216</td>
+    </tr>
+    <tr>
+      <th>sibsp</th>
+      <td>-0.308</td>
+      <td>0.160</td>
+      <td>1.000</td>
+      <td>0.415</td>
+    </tr>
+    <tr>
+      <th>parch</th>
+      <td>-0.189</td>
+      <td>0.216</td>
+      <td>0.415</td>
+      <td>1.000</td>
+    </tr>
+  </tbody>
+</table></div></div><h3>피어슨 외의 다른 상관계수</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p><b>피어슨</b>은 실제 점수를 그대로 쓰지만, <b>스피어만</b>은 점수를 등수로 바꿔서 비교합니다. 달리기 시합에서 “기록(초)”이 아닌 “등수”만 본다고 생각하세요. 극단적인 값의 영향을 덜 받아요. <b>켄달</b>은 두 순위가 ‘얼마나 같은 순서로 정렬되는지’를 짝지어 따집니다.</p></div><div class="code"><pre><code><span class="n">pair</span> <span class="o">=</span> <span class="n">tips</span><span class="p">[[</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="s2">"tip"</span><span class="p">]]</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s2">"피어슨"</span><span class="p">:</span> <span class="p">[</span><span class="n">pair</span><span class="o">.</span><span class="n">corr</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">"pearson"</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span>
+    <span class="s2">"스피어만"</span><span class="p">:</span> <span class="p">[</span><span class="n">pair</span><span class="o">.</span><span class="n">corr</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">"spearman"</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span>
+    <span class="s2">"켄달"</span><span class="p">:</span> <span class="p">[</span><span class="n">pair</span><span class="o">.</span><span class="n">corr</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">"kendall"</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span>
+<span class="p">},</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s2">"총금액-팁"</span><span class="p">])</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>피어슨</th>
+      <th>스피어만</th>
+      <th>켄달</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>총금액-팁</th>
+      <td>0.676</td>
+      <td>0.679</td>
+      <td>0.517</td>
+    </tr>
+  </tbody>
+</table></div></div><h3>상관계수가 ‘진짜’인지 검정하기</h3><p>표본에서 구한 r이 우연히 나온 값일 가능성은 없을까요? <b>상관 검정</b>은 “실제 모집단에서는 상관이 0(없음)이다”라고 가정했을 때 이런 r이 나올 확률(p-값)을 알려 줍니다.</p><div class="code"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">pearsonr</span>
+
+<span class="n">r</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">pearsonr</span><span class="p">(</span><span class="n">tips</span><span class="p">[</span><span class="s2">"total_bill"</span><span class="p">],</span> <span class="n">tips</span><span class="p">[</span><span class="s2">"tip"</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"상관계수 r = </span><span class="si">{</span><span class="n">r</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"p-값 = </span><span class="si">{</span><span class="n">p</span><span class="si">:</span><span class="s2">.3g</span><span class="si">}</span><span class="s2">   (0.05보다 작으면 상관이 있다고 판단)"</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">상관계수 r = 0.676
+p-값 = 6.69e-34   (0.05보다 작으면 상관이 있다고 판단)</pre></div><div class="box rcmp"><div class="box-title">🔁 R에서는?</div><p>R의 <code>cor.test(x, y)</code> → <code>scipy.stats.pearsonr(x, y)</code>, <code>method="spearman"</code> → <code>spearmanr()</code>, <code>"kendall"</code> → <code>kendalltau()</code>.</p></div><h3>상관행렬을 그림(히트맵)으로</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>상관행렬의 숫자들을 <b>색깔 온도계</b>로 바꾼 그림입니다. 빨강은 강한 양의 상관, 파랑은 강한 음의 상관, 흰색은 무관. 숫자표보다 훨씬 빨리 패턴을 찾을 수 있어요.</p></div><div class="code"><pre><code><span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"carat"</span><span class="p">,</span> <span class="s2">"depth"</span><span class="p">,</span> <span class="s2">"table"</span><span class="p">,</span> <span class="s2">"price"</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">,</span> <span class="s2">"z"</span><span class="p">]</span>    <span class="c1"># 다이아몬드의 수치형 변수들</span>
+<span class="n">corr</span> <span class="o">=</span> <span class="n">diamonds</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span><span class="o">.</span><span class="n">corr</span><span class="p">()</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">corr</span><span class="p">,</span> <span class="n">annot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">".2f"</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"coolwarm"</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">square</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"다이아몬드 변수들의 상관행렬"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch04_09.png" alt="그래프 9"></div><p>무게(carat)·가격(price)·크기(x, y, z)가 서로 강하게 연결되어 있습니다. 무거운 다이아몬드일수록 크고 비싸니까요.</p><h3>4.2.2 산점도</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>산점도는 <b>두 변수로 만든 지도</b>입니다. 가로 좌표는 첫 번째 변수, 세로 좌표는 두 번째 변수 값으로, 관측치 하나마다 점 하나를 찍습니다. 점들이 사선으로 모여 있으면 ‘관계 있음’, 흩뿌려져 있으면 ‘관계 없음’입니다.</p></div><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"tip"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"총 계산 금액과 팁"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"총 계산 금액($)"</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"팁($)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch04_10.png" alt="그래프 10"></div><h3>4.2.3 추세선</h3><p>점들의 전반적인 흐름을 선으로 그려 주면 관계가 더 선명해집니다. <b>직선 추세선(선형 회귀선)</b>은 점들의 한가운데를 지나는 ‘가장 잘 맞는 직선’입니다.</p><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>직선 추세선은 점들 사이에 <b>투명한 자를 올려 놓고</b> 점들과 평균적으로 가장 가깝게 지나도록 맞춘 선이고, <b>부드러운 곡선(loess)</b>은 <b>고무줄</b>을 점들 사이에 걸쳐 놓은 것처럼 자연스럽게 휘는 선입니다.</p></div><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">regplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"tip"</span><span class="p">,</span> <span class="n">scatter_kws</span><span class="o">=</span><span class="p">{</span><span class="s2">"alpha"</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">},</span> <span class="n">line_kws</span><span class="o">=</span><span class="p">{</span><span class="s2">"color"</span><span class="p">:</span> <span class="s2">"crimson"</span><span class="p">})</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"직선 추세선"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch04_11.png" alt="그래프 11"></div><p>곡선 추세선은 <code>lowess=True</code>를 지정합니다. 직선과 곡선이 비슷하면 관계가 ‘직선’이라고 봐도 무방합니다.</p><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">regplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"tip"</span><span class="p">,</span> <span class="n">lowess</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">scatter_kws</span><span class="o">=</span><span class="p">{</span><span class="s2">"alpha"</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">},</span> <span class="n">line_kws</span><span class="o">=</span><span class="p">{</span><span class="s2">"color"</span><span class="p">:</span> <span class="s2">"crimson"</span><span class="p">})</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"부드러운 곡선 추세선(lowess)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch04_12.png" alt="그래프 12"></div><h3>4.2.4 한꺼번에 보기: pairplot 응용</h3><p>2장에서 본 <code>pairplot</code>은 산점도와 분포를 한 번에 보여 줍니다. 상관계수까지 함께 보고 싶다면 아래처럼 사용자가 직접 칸마다 그릴 내용을 정해 줍니다. (R의 <code>GGally::ggpairs()</code>와 같은 그림을 만드는 방법입니다.)</p><div class="code"><pre><code><span class="k">def</span><span class="w"> </span><span class="nf">show_corr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>                 <span class="c1"># 칸 안에 상관계수를 글자로 적어 주는 도우미 함수</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">corr</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="sa">f</span><span class="s2">"r = </span><span class="si">{</span><span class="n">r</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span> <span class="n">xycoords</span><span class="o">=</span><span class="s2">"axes fraction"</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">"center"</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">"center"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_axis_off</span><span class="p">()</span>
+
+<span class="n">g</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">PairGrid</span><span class="p">(</span><span class="n">tips</span><span class="p">[[</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="s2">"tip"</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">]])</span>
+<span class="n">g</span><span class="o">.</span><span class="n">map_diag</span><span class="p">(</span><span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">,</span> <span class="n">kde</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>       <span class="c1"># 대각선: 분포</span>
+<span class="n">g</span><span class="o">.</span><span class="n">map_lower</span><span class="p">(</span><span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>  <span class="c1"># 왼쪽 아래: 산점도</span>
+<span class="n">g</span><span class="o">.</span><span class="n">map_upper</span><span class="p">(</span><span class="n">show_corr</span><span class="p">)</span>                   <span class="c1"># 오른쪽 위: 상관계수</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch04_13.png" alt="그래프 13"></div><h3>4.2.5 조건을 달리하며 보기: 범주형 변수 활용</h3><p>상관관계가 ‘모든 집단에서 같은 모양인지’도 중요합니다. 점의 <b>색깔(hue)</b>이나 <b>칸 나누기(col)</b>로 범주형 변수를 추가해 봅니다.</p><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"tip"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">"time"</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>   <span class="c1"># 점심/저녁에 따라 색깔 다르게</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"식사 시간대별 총금액과 팁"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch04_14.png" alt="그래프 14"></div><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">lmplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"total_bill"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"tip"</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="s2">"day"</span><span class="p">,</span> <span class="n">col_wrap</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">3.2</span><span class="p">)</span>   <span class="c1"># 요일별로 칸 나누고 추세선까지</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch04_15.png" alt="그래프 15"></div><p>다이아몬드처럼 점이 너무 많아 겹칠 때는 투명도(<code>alpha</code>)를 낮추고 일부만 뽑아(표집) 그리면 좋습니다. 가격과 무게는 둘 다 오른쪽으로 치우쳐 있으므로 <b>로그 눈금</b>이 효과적입니다.</p><div class="code"><pre><code><span class="n">sample</span> <span class="o">=</span> <span class="n">diamonds</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="mi">3000</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>   <span class="c1"># 5만 개 중 3,000개 무작위 추출</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">sample</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"carat"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"price"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">"clarity"</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">hue_order</span><span class="o">=</span><span class="p">[</span><span class="s2">"I1"</span><span class="p">,</span><span class="s2">"SI2"</span><span class="p">,</span><span class="s2">"SI1"</span><span class="p">,</span><span class="s2">"VS2"</span><span class="p">,</span><span class="s2">"VS1"</span><span class="p">,</span><span class="s2">"VVS2"</span><span class="p">,</span><span class="s2">"VVS1"</span><span class="p">,</span><span class="s2">"IF"</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xscale</span><span class="p">(</span><span class="s2">"log"</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">yscale</span><span class="p">(</span><span class="s2">"log"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">([</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="s2">"0.3"</span><span class="p">,</span> <span class="s2">"0.5"</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">,</span> <span class="s2">"2"</span><span class="p">,</span> <span class="s2">"3"</span><span class="p">])</span>   <span class="c1"># 눈금 숫자를 읽기 쉽게</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">minorticks_off</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"무게와 가격 (로그 눈금, 투명도 적용)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch04_16.png" alt="그래프 16"></div><h3>4.2.6 조건으로 쓸 변수가 수치형일 때: 범주로 바꾸기</h3><p>연속적인 숫자(나이, 금액)를 <b>구간별 범주</b>로 바꾸면 위의 ‘범주형 조건’ 방법을 그대로 쓸 수 있습니다. 데이터를 개수가 같도록 4등분하는 <code>pd.qcut()</code>이 편리합니다.</p><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>성적순으로 학생을 4개 모둠(상위 25%, 중상, 중하, 하위 25%)으로 나누는 것과 같습니다. <code>cut</code>은 ‘점수 구간’(0~25점, 25~50점…)으로, <code>qcut</code>은 ‘인원 비율’(상위 25%…)로 나눕니다.</p></div><div class="code"><pre><code><span class="n">tips</span><span class="p">[</span><span class="s2">"size_group"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">qcut</span><span class="p">(</span><span class="n">tips</span><span class="p">[</span><span class="s2">"total_bill"</span><span class="p">],</span> <span class="mi">4</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s2">"하위25%"</span><span class="p">,</span> <span class="s2">"중하"</span><span class="p">,</span> <span class="s2">"중상"</span><span class="p">,</span> <span class="s2">"상위25%"</span><span class="p">])</span>   <span class="c1"># 금액 기준 4등분</span>
+<span class="n">tips</span><span class="p">[</span><span class="s2">"size_group"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>count</th>
+    </tr>
+    <tr>
+      <th>size_group</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>하위25%</th>
+      <td>61</td>
+    </tr>
+    <tr>
+      <th>중하</th>
+      <td>61</td>
+    </tr>
+    <tr>
+      <th>중상</th>
+      <td>61</td>
+    </tr>
+    <tr>
+      <th>상위25%</th>
+      <td>61</td>
+    </tr>
+  </tbody>
+</table></div></div><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">boxplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"size_group"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"tip"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"계산 금액 구간별 팁"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch04_17.png" alt="그래프 17"></div><h3>요약: R ↔ 파이썬 대응표</h3><div class="tblwrap"><table class="plain "><thead><tr><th>하고 싶은 일</th><th>R</th><th>파이썬</th></tr></thead><tbody><tr><td>평균/중위수</td><td><code>mean()</code>, <code>median()</code></td><td><code>s.mean()</code>, <code>s.median()</code></td></tr><tr><td>분산/표준편차</td><td><code>var()</code>, <code>sd()</code></td><td><code>s.var()</code>, <code>s.std()</code></td></tr><tr><td>분위수/IQR</td><td><code>quantile()</code>, <code>IQR()</code></td><td><code>s.quantile()</code>, <code>q3 - q1</code></td></tr><tr><td>왜도/첨도</td><td><code>psych::skew()</code></td><td><code>s.skew()</code>, <code>s.kurt()</code></td></tr><tr><td>종합 요약</td><td><code>psych::describe()</code></td><td><code>df.describe()</code></td></tr><tr><td>구간 나누기</td><td><code>cut()</code></td><td><code>pd.cut()</code>, <code>pd.qcut()</code></td></tr><tr><td>히스토그램</td><td><code>geom_histogram()</code></td><td><code>sns.histplot()</code></td></tr><tr><td>밀도 그래프</td><td><code>geom_density()</code></td><td><code>sns.kdeplot()</code></td></tr><tr><td>Q-Q 그림</td><td><code>geom_qq()</code></td><td><code>sm.qqplot()</code></td></tr><tr><td>상자 그림</td><td><code>geom_boxplot()</code></td><td><code>sns.boxplot()</code></td></tr><tr><td>로그/Box-Cox</td><td><code>log10()</code>, <code>powerTransform()</code></td><td><code>np.log10()</code>, <code>stats.boxcox()</code></td></tr><tr><td>상관계수/검정</td><td><code>cor()</code>, <code>cor.test()</code></td><td><code>s.corr()</code>, <code>pearsonr()</code></td></tr><tr><td>상관 시각화</td><td><code>corrplot()</code></td><td><code>sns.heatmap()</code></td></tr><tr><td>산점도 + 추세선</td><td><code>geom_point() + geom_smooth()</code></td><td><code>sns.regplot()</code></td></tr><tr><td>그림 한꺼번에</td><td><code>GGally::ggpairs()</code></td><td><code>sns.pairplot()</code>, <code>PairGrid</code></td></tr></tbody></table></div>
+<div class="pager"><a href="ch03.html">← 3장 범주형 변수 기술통계</a><a href="ch05.html">5장 범주형 × 수치형 변수의 관계 →</a></div>
+</main>
+<footer>※ 이 자료는 『R을 이용한 통계 분석』(김길환) 온라인 교재의 구성을 바탕으로, 파이썬 기준으로 새로 작성한 수업자료입니다.</footer>
+</body></html>

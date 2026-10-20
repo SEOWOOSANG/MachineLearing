@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3장 범주형 변수 기술통계 - 파이썬으로 배우는 데이터분석과 통계</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<header class="top"><a href="index.html">📊 파이썬으로 배우는 데이터분석과 통계</a>
+<nav><a href="ch01.html">1장</a><a href="ch02.html">2장</a><a href="ch03.html" class=cur>3장</a><a href="ch04.html">4장</a><a href="ch05.html">5장</a></nav></header>
+<main>
+<div class="chead"><div class="cnum">3장</div><h1>범주형 변수 기술통계</h1><p class="sub">‘몇 명이나 되지?’를 세고 그림으로 그리기</p></div>
+<div class="box goal"><div class="box-title">🎯 이 장에서 배우는 것</div><ul><li>범주형 변수의 <b>도수(빈도)표</b>와 <b>상대도수표(비율)</b>를 만들 수 있다.</li><li>막대그래프·원그래프를 그릴 수 있다.</li><li>두 범주형 변수의 <b>교차표</b>를 만들고 비율로 해석할 수 있다.</li><li>누적/나란한/100% 막대그래프, 모자이크 그림의 차이를 안다.</li><li>두 범주형 변수가 관련 있는지 <b>카이제곱 검정</b>으로 확인해 본다.</li></ul></div>
+<div class="toc"><b>이 장의 목차</b><a href="#s1">3.1 한 범주형 변수의 분포 분석</a><a href="#s2">3.2 둘 이상의 범주형 변수의 상관성 분석</a><a href="#s3">3.3 사례 연구</a></div>
+<div class="code"><pre><code><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">seaborn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sns</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">platform</span>
+
+<span class="n">sns</span><span class="o">.</span><span class="n">set_theme</span><span class="p">(</span><span class="n">style</span><span class="o">=</span><span class="s1">'whitegrid'</span><span class="p">)</span>             <span class="c1"># 그래프 기본 스타일 (이 줄을 먼저!)</span>
+
+<span class="c1"># 그래프에서 한글이 깨지지 않게 하는 설정 (운영체제에 맞는 글꼴 선택)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">'font.family'</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'Darwin'</span><span class="p">:</span> <span class="s1">'Apple SD Gothic Neo'</span><span class="p">,</span> <span class="s1">'Windows'</span><span class="p">:</span> <span class="s1">'Malgun Gothic'</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">(),</span> <span class="s1">'NanumGothic'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">'axes.unicode_minus'</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>   <span class="c1"># 마이너스(-) 기호 깨짐 방지</span>
+</code></pre></div><div class="code"><pre><code><span class="n">tips</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/tips.csv"</span><span class="p">)</span>
+<span class="n">titanic</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">"data/titanic.csv"</span><span class="p">)</span>
+
+<span class="c1"># 요일/객실 등급은 순서를 정해 두면 표와 그래프가 읽기 편해집니다</span>
+<span class="n">tips</span><span class="p">[</span><span class="s2">"day"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">tips</span><span class="p">[</span><span class="s2">"day"</span><span class="p">],</span> <span class="p">[</span><span class="s2">"Thur"</span><span class="p">,</span> <span class="s2">"Fri"</span><span class="p">,</span> <span class="s2">"Sat"</span><span class="p">,</span> <span class="s2">"Sun"</span><span class="p">],</span> <span class="n">ordered</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">titanic</span><span class="p">[</span><span class="s2">"class"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">titanic</span><span class="p">[</span><span class="s2">"class"</span><span class="p">],</span> <span class="p">[</span><span class="s2">"First"</span><span class="p">,</span> <span class="s2">"Second"</span><span class="p">,</span> <span class="s2">"Third"</span><span class="p">],</span> <span class="n">ordered</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">titanic</span><span class="p">[</span><span class="s2">"survived_kr"</span><span class="p">]</span> <span class="o">=</span> <span class="n">titanic</span><span class="p">[</span><span class="s2">"survived"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">({</span><span class="mi">0</span><span class="p">:</span> <span class="s2">"사망"</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s2">"생존"</span><span class="p">})</span>   <span class="c1"># 0/1을 알아보기 쉬운 글자로</span>
+<span class="n">titanic</span><span class="p">[</span><span class="s2">"sex_kr"</span><span class="p">]</span> <span class="o">=</span> <span class="n">titanic</span><span class="p">[</span><span class="s2">"sex"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">({</span><span class="s2">"male"</span><span class="p">:</span> <span class="s2">"남성"</span><span class="p">,</span> <span class="s2">"female"</span><span class="p">:</span> <span class="s2">"여성"</span><span class="p">})</span>
+<span class="n">titanic</span><span class="p">[</span><span class="s2">"class_kr"</span><span class="p">]</span> <span class="o">=</span> <span class="n">titanic</span><span class="p">[</span><span class="s2">"class"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">({</span><span class="s2">"First"</span><span class="p">:</span> <span class="s2">"1등석"</span><span class="p">,</span> <span class="s2">"Second"</span><span class="p">:</span> <span class="s2">"2등석"</span><span class="p">,</span> <span class="s2">"Third"</span><span class="p">:</span> <span class="s2">"3등석"</span><span class="p">})</span>
+</code></pre></div><h2 id="s1">3.1 한 범주형 변수의 분포 분석</h2><h3>3.1.1 숫자로 요약하기: 도수표와 상대도수표</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>반 친구들에게 “좋아하는 과일에 손 드세요”라고 했을 때, <b>사과 12명, 바나나 8명</b>처럼 손 든 사람 수를 그대로 세면 <b>도수(빈도)표</b>, 전체 20명 중 <b>사과 60%, 바나나 40%</b>처럼 비율로 바꾸면 <b>상대도수표</b>입니다. 도수는 ‘몇 명’, 상대도수는 ‘몇 %’예요.</p></div><p><code>value_counts()</code>는 범주별로 몇 번 나왔는지 세어 줍니다. 요일별 손님 수를 세어 볼까요?</p><div class="code"><pre><code><span class="n">tips</span><span class="p">[</span><span class="s2">"day"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>      <span class="c1"># 도수표 (sort_index: 우리가 정한 순서로 정렬)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>count</th>
+    </tr>
+    <tr>
+      <th>day</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Thur</th>
+      <td>62</td>
+    </tr>
+    <tr>
+      <th>Fri</th>
+      <td>19</td>
+    </tr>
+    <tr>
+      <th>Sat</th>
+      <td>87</td>
+    </tr>
+    <tr>
+      <th>Sun</th>
+      <td>76</td>
+    </tr>
+  </tbody>
+</table></div></div><p><code>normalize=True</code>를 붙이면 비율(0~1)로 계산해 줍니다. 100을 곱하고 <code>round()</code>로 반올림하면 퍼센트가 됩니다.</p><div class="code"><pre><code><span class="n">freq</span> <span class="o">=</span> <span class="n">tips</span><span class="p">[</span><span class="s2">"day"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+<span class="n">rel</span> <span class="o">=</span> <span class="n">tips</span><span class="p">[</span><span class="s2">"day"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">(</span><span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+
+<span class="c1"># 도수표와 상대도수표를 한 표로 합치기</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"도수(명)"</span><span class="p">:</span> <span class="n">freq</span><span class="p">,</span> <span class="s2">"비율(%)"</span><span class="p">:</span> <span class="p">(</span><span class="n">rel</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">)})</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>도수(명)</th>
+      <th>비율(%)</th>
+    </tr>
+    <tr>
+      <th>day</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Thur</th>
+      <td>62</td>
+      <td>25.4</td>
+    </tr>
+    <tr>
+      <th>Fri</th>
+      <td>19</td>
+      <td>7.8</td>
+    </tr>
+    <tr>
+      <th>Sat</th>
+      <td>87</td>
+      <td>35.7</td>
+    </tr>
+    <tr>
+      <th>Sun</th>
+      <td>76</td>
+      <td>31.1</td>
+    </tr>
+  </tbody>
+</table></div></div><div class="box rcmp"><div class="box-title">🔁 R에서는?</div><p><code>table()</code> → <code>value_counts()</code>, <code>proportions()</code> → <code>normalize=True</code> 옵션, <code>xtabs(~변수, data=)</code> → <code>value_counts()</code> 또는 <code>pd.crosstab()</code>에 해당합니다.</p></div><h3>3.1.2 그래프로 요약하기: 막대그래프</h3><p><b>막대그래프</b>는 범주별 도수를 막대 높이로 보여 줍니다. 막대 사이가 떨어져 있는 것은 ‘서로 다른 칸(범주)’이라는 뜻입니다.</p><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">countplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"day"</span><span class="p">)</span>     <span class="c1"># x축: 요일, 막대 높이: 개수</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"요일별 손님 수"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"요일"</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"손님 수(팀)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch03_01.png" alt="그래프 1"></div><p>비율로 보고 싶다면 <code>stat="percent"</code>를 지정합니다.</p><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">countplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">tips</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"day"</span><span class="p">,</span> <span class="n">stat</span><span class="o">=</span><span class="s2">"percent"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"요일별 손님 비율"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"비율(%)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch03_02.png" alt="그래프 2"></div><p>범주 이름이 길면 가로로 눕히는 것이 읽기 좋습니다. <code>x</code> 대신 <code>y</code>에 변수를 넣으면 됩니다. 또 <b>많은 순서대로 정렬</b>하면 한눈에 순위가 보입니다. (<code>order</code>에 순서를 넣습니다.)</p><div class="code"><pre><code><span class="n">order</span> <span class="o">=</span> <span class="n">titanic</span><span class="p">[</span><span class="s2">"embark_town"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">index</span>   <span class="c1"># 많은 순서대로 이름 뽑기</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">countplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">titanic</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"embark_town"</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"탑승 항구별 승객 수"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch03_03.png" alt="그래프 3"></div><div class="box tip"><div class="box-title">💡 알아두기</div><p>순서가 <b>없는</b> 명목형 변수(항구, 지역 등)는 <b>많은 순으로 정렬</b>하면 보기 좋고, 순서가 <b>있는</b> 변수(학년, 요일)는 원래 순서를 지켜야 합니다.</p></div><h3>3.1.3 원그래프(파이차트)</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>원그래프는 <b>피자 한 판</b>을 나눈 모양입니다. ‘전체에서 각 조각이 차지하는 몫’을 보여 주기에는 좋지만, 조각이 비슷비슷하면 어느 쪽이 큰지 구별하기 어렵습니다. 그래서 통계에서는 보통 막대그래프를 더 권장합니다.</p></div><div class="code"><pre><code><span class="n">counts</span> <span class="o">=</span> <span class="n">tips</span><span class="p">[</span><span class="s2">"day"</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pie</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">counts</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">autopct</span><span class="o">=</span><span class="s2">"</span><span class="si">%.1f%%</span><span class="s2">"</span><span class="p">,</span> <span class="n">startangle</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span> <span class="n">counterclock</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"요일별 손님 비율"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch03_04.png" alt="그래프 4"></div><h2 id="s2">3.2 둘 이상의 범주형 변수의 상관성 분석</h2><p>이제 <b>두 변수가 서로 관련이 있는지</b> 살펴봅니다. 예를 들어 “성별에 따라 생존율이 다를까?” 같은 질문입니다.</p><h3>3.2.1 교차표(분할표)</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>교차표는 <b>학교 시간표</b>와 비슷합니다. 가로축(월~금)과 세로축(1~7교시)이 만나는 칸에 과목이 적혀 있죠. 교차표도 가로축은 한 변수, 세로축은 다른 변수의 범주이고, <b>두 조건을 동시에 만족하는 사람 수</b>가 칸에 들어갑니다. (예: 남성이면서 사망한 사람 수)</p></div><div class="code"><pre><code><span class="n">ct</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span><span class="n">titanic</span><span class="p">[</span><span class="s2">"sex_kr"</span><span class="p">],</span> <span class="n">titanic</span><span class="p">[</span><span class="s2">"survived_kr"</span><span class="p">])</span>   <span class="c1"># 행: 성별, 열: 생존 여부</span>
+<span class="n">ct</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>survived_kr</th>
+      <th>사망</th>
+      <th>생존</th>
+    </tr>
+    <tr>
+      <th>sex_kr</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>남성</th>
+      <td>468</td>
+      <td>109</td>
+    </tr>
+    <tr>
+      <th>여성</th>
+      <td>81</td>
+      <td>233</td>
+    </tr>
+  </tbody>
+</table></div></div><p><code>margins=True</code>를 붙이면 가로·세로 <b>합계(주변 합)</b>가 생깁니다.</p><div class="code"><pre><code><span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span><span class="n">titanic</span><span class="p">[</span><span class="s2">"sex_kr"</span><span class="p">],</span> <span class="n">titanic</span><span class="p">[</span><span class="s2">"survived_kr"</span><span class="p">],</span> <span class="n">margins</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">margins_name</span><span class="o">=</span><span class="s2">"합계"</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>survived_kr</th>
+      <th>사망</th>
+      <th>생존</th>
+      <th>합계</th>
+    </tr>
+    <tr>
+      <th>sex_kr</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>남성</th>
+      <td>468</td>
+      <td>109</td>
+      <td>577</td>
+    </tr>
+    <tr>
+      <th>여성</th>
+      <td>81</td>
+      <td>233</td>
+      <td>314</td>
+    </tr>
+    <tr>
+      <th>합계</th>
+      <td>549</td>
+      <td>342</td>
+      <td>891</td>
+    </tr>
+  </tbody>
+</table></div></div><p>그런데 위 표만 봐서는 “남성이 더 많이 죽었다”고 말하기 어렵습니다. 남성 승객 자체가 훨씬 많기 때문이죠. 그래서 <b>비율</b>로 바꿔 봐야 합니다. <code>normalize</code> 옵션이 핵심입니다.</p><div class="tblwrap"><table class="plain "><thead><tr><th>옵션</th><th>뜻</th><th>읽는 법</th></tr></thead><tbody><tr><td><code>normalize="index"</code></td><td><b>행</b> 합계를 100%로</td><td>“남성 중 몇 %가 생존?” (각 행의 합 = 100%)</td></tr><tr><td><code>normalize="columns"</code></td><td><b>열</b> 합계를 100%로</td><td>“생존자 중 몇 %가 남성?” (각 열의 합 = 100%)</td></tr><tr><td><code>normalize=True</code></td><td><b>전체</b> 합계를 100%로</td><td>“전체 승객 중 몇 %가 여성이면서 생존?”</td></tr></tbody></table></div><div class="code"><pre><code><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span><span class="n">titanic</span><span class="p">[</span><span class="s2">"sex_kr"</span><span class="p">],</span> <span class="n">titanic</span><span class="p">[</span><span class="s2">"survived_kr"</span><span class="p">],</span> <span class="n">normalize</span><span class="o">=</span><span class="s2">"index"</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>survived_kr</th>
+      <th>사망</th>
+      <th>생존</th>
+    </tr>
+    <tr>
+      <th>sex_kr</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>남성</th>
+      <td>81.1</td>
+      <td>18.9</td>
+    </tr>
+    <tr>
+      <th>여성</th>
+      <td>25.8</td>
+      <td>74.2</td>
+    </tr>
+  </tbody>
+</table></div></div><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>학교 두 곳의 급식 만족도를 비교한다고 합시다. A학교 1000명 중 300명, B학교 100명 중 50명이 만족했습니다. ‘사람 수’만 보면 A가 많지만, <b>비율</b>은 A 30%, B 50%로 B가 높죠. <b>모집단 크기가 다르면 개수가 아니라 비율로 비교</b>해야 공정합니다.</p></div><div class="box warn"><div class="box-title">⚠️ 주의</div><p>어느 방향으로 100%를 맞추느냐(행 기준/열 기준)에 따라 의미가 전혀 달라집니다. <b>‘비교하고 싶은 그룹’이 행</b>에 오게 하고 <code>normalize="index"</code>를 쓰면 가장 자연스럽습니다.</p></div><h3>3.2.2 3차원 교차표</h3><p>변수를 세 개 이상 넣을 수도 있습니다. 행이나 열에 리스트(<code>[ ]</code>)로 여러 변수를 넣으면 됩니다. 객실 등급별로 성별×생존을 한꺼번에 봅니다.</p><div class="code"><pre><code><span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">([</span><span class="n">titanic</span><span class="p">[</span><span class="s2">"class"</span><span class="p">],</span> <span class="n">titanic</span><span class="p">[</span><span class="s2">"sex_kr"</span><span class="p">]],</span> <span class="n">titanic</span><span class="p">[</span><span class="s2">"survived_kr"</span><span class="p">])</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>survived_kr</th>
+      <th>사망</th>
+      <th>생존</th>
+    </tr>
+    <tr>
+      <th>class</th>
+      <th>sex_kr</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th rowspan="2" valign="top">First</th>
+      <th>남성</th>
+      <td>77</td>
+      <td>45</td>
+    </tr>
+    <tr>
+      <th>여성</th>
+      <td>3</td>
+      <td>91</td>
+    </tr>
+    <tr>
+      <th rowspan="2" valign="top">Second</th>
+      <th>남성</th>
+      <td>91</td>
+      <td>17</td>
+    </tr>
+    <tr>
+      <th>여성</th>
+      <td>6</td>
+      <td>70</td>
+    </tr>
+    <tr>
+      <th rowspan="2" valign="top">Third</th>
+      <th>남성</th>
+      <td>300</td>
+      <td>47</td>
+    </tr>
+    <tr>
+      <th>여성</th>
+      <td>72</td>
+      <td>72</td>
+    </tr>
+  </tbody>
+</table></div></div><p>행이 ‘등급 → 성별’로 계층을 이루고 있습니다. 1등석 여성의 사망자가 매우 적고, 3등석 남성의 사망자가 많다는 점이 숫자만 봐도 느껴집니다.</p><h3>3.2.3 그래프로 요약하기</h3><p>교차표를 그림으로 그리는 방법은 세 가지입니다. 같은 데이터를 어떻게 쌓느냐에 따라 눈에 들어오는 정보가 다릅니다.</p><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>학생 수를 성별로 나눠 막대에 표시한다고 상상해 보세요. <b>누적막대</b>는 남녀를 ‘쌓은 블록’처럼 위로 올리고, <b>나란한 막대</b>는 남녀를 ‘옆에 나란히 세워’ 높이를 직접 비교하며, <b>100% 막대</b>는 모든 막대를 같은 높이로 맞춰서 ‘구성 비율’만 비교하게 합니다.</p></div><h3>① 누적 막대그래프</h3><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">titanic</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"class"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">"survived_kr"</span><span class="p">,</span> <span class="n">multiple</span><span class="o">=</span><span class="s2">"stack"</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"객실 등급별 생존 여부 (누적)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch03_05.png" alt="그래프 5"></div><h3>② 나란한 막대그래프</h3><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">countplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">titanic</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"class"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">"survived_kr"</span><span class="p">)</span>   <span class="c1"># hue: 색깔로 구분할 변수</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"객실 등급별 생존 여부 (나란히)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch03_06.png" alt="그래프 6"></div><h3>③ 100% 막대그래프 (비율 비교)</h3><div class="code"><pre><code><span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">titanic</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"class"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">"survived_kr"</span><span class="p">,</span> <span class="n">multiple</span><span class="o">=</span><span class="s2">"fill"</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"객실 등급별 생존 비율"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"비율"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch03_07.png" alt="그래프 7"></div><p>그래프 ③을 보면 등급이 높을수록 생존 비율이 높습니다. 전체 인원수 차이를 없애고 비율만 비교했기 때문에 ‘관계’가 가장 뚜렷하게 보입니다.</p><div class="tblwrap"><table class="plain "><thead><tr><th>그래프</th><th>잘 보이는 것</th><th>단점</th></tr></thead><tbody><tr><td>누적</td><td>전체 크기 + 구성</td><td>위쪽 조각의 크기를 비교하기 어려움</td></tr><tr><td>나란히</td><td>칸마다 개수 직접 비교</td><td>그룹별 전체 크기가 다르면 비율 비교는 어려움</td></tr><tr><td>100% 막대</td><td>그룹별 비율 비교</td><td>전체 인원수 정보가 사라짐</td></tr></tbody></table></div><h3>④ 모자이크 그림</h3><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>모자이크 그림은 <b>초콜릿 바</b>를 쪼갠 모양입니다. 가로 폭은 ‘그 그룹의 사람 수’, 세로 높이는 ‘그룹 안의 비율’을 나타내서, 한 장에 <b>개수와 비율을 모두</b> 보여 줍니다. 100% 막대의 단점(인원수 정보 소실)을 보완하죠.</p></div><div class="code"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">statsmodels.graphics.mosaicplot</span><span class="w"> </span><span class="kn">import</span> <span class="n">mosaic</span>
+
+<span class="n">mosaic</span><span class="p">(</span><span class="n">titanic</span><span class="p">,</span> <span class="p">[</span><span class="s2">"class_kr"</span><span class="p">,</span> <span class="s2">"survived_kr"</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">"객실 등급별 생존 여부(모자이크)"</span><span class="p">,</span> <span class="n">gap</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch03_08.png" alt="그래프 8"></div><div class="box rcmp"><div class="box-title">🔁 R에서는?</div><p>R의 <code>vcd::mosaic()</code>은 파이썬에서 <code>statsmodels.graphics.mosaicplot.mosaic()</code>으로 그릴 수 있습니다.</p></div><h2 id="s3">3.3 사례 연구</h2><h3>3.3.1 사례 1: 성별에 따라 생존율이 다를까? (원본 교재의 관절염 임상시험 사례를 대체)</h3><p>원본 교재는 ‘치료 방법(처방/위약)에 따라 관절염 개선 정도가 다른가’를 다룹니다. 구조는 똑같이 <b>“그룹(원인) × 결과”</b>의 두 범주형 변수입니다. 여기서는 “성별(그룹) × 생존 여부(결과)”로 연습합니다.</p><div class="code"><pre><code><span class="n">ct</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span><span class="n">titanic</span><span class="p">[</span><span class="s2">"sex_kr"</span><span class="p">],</span> <span class="n">titanic</span><span class="p">[</span><span class="s2">"survived_kr"</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ct</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">((</span><span class="n">ct</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>   <span class="c1"># 행 합계로 나누기 = 행 기준 비율</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">survived_kr   사망   생존
+sex_kr               
+남성           468  109
+여성            81  233
+
+survived_kr    사망    생존
+sex_kr                 
+남성           81.1  18.9
+여성           25.8  74.2</pre></div><p>여성의 생존율은 약 74%, 남성은 약 19%로 차이가 매우 큽니다. 그런데 이 차이가 <b>우연일까요, 진짜 차이일까요?</b> 이를 확인하는 것이 <b>카이제곱 검정</b>입니다.</p><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>동전을 100번 던졌을 때 앞면이 50번이 아니라 53번 나왔다고 ‘이 동전은 조작됐다!’라고 하진 않죠. 우연히 생길 수 있는 흔들림이니까요. 하지만 90번 나온다면 우연이라고 보기 어렵습니다. 카이제곱 검정은 “성별과 생존이 <b>아무 관계가 없다면</b> 나왔을 법한 표(기대 도수)”와 “<b>실제로 관측된 표</b>”를 비교해서, 둘이 우연으로 설명할 수 없을 만큼 다른지를 <b>p-값</b>으로 알려 줍니다.</p></div><div class="code"><pre><code><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">chi2_contingency</span>
+
+<span class="n">chi2</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">dof</span><span class="p">,</span> <span class="n">expected</span> <span class="o">=</span> <span class="n">chi2_contingency</span><span class="p">(</span><span class="n">ct</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"카이제곱 통계량 = </span><span class="si">{</span><span class="n">chi2</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"p-값 = </span><span class="si">{</span><span class="n">p</span><span class="si">:</span><span class="s2">.3g</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">[관계가 없다고 가정했을 때의 기대 도수]"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><pre class="out">카이제곱 통계량 = 260.72
+p-값 = 1.2e-58
+
+[관계가 없다고 가정했을 때의 기대 도수]
+survived_kr     사망     생존
+sex_kr                   
+남성           355.5  221.5
+여성           193.5  120.5</pre></div><div class="box tip"><div class="box-title">💡 알아두기</div><p><b>p-값 읽는 법(초보자용)</b>: “두 변수가 아무 관계 없다고 가정했을 때, 이 정도(이상)로 차이가 날 확률”입니다. 보통 <b>0.05보다 작으면</b> ‘우연이라 보기 어렵다 = 관계가 있다’고 판단합니다. 여기서는 p-값이 0.05보다 훨씬 작으므로, 성별과 생존 여부는 관련이 있다고 결론 내립니다.</p></div><div class="box warn"><div class="box-title">⚠️ 주의</div><p>‘관련이 있다’는 것이 ‘성별이 생존의 <b>원인</b>이다’라는 뜻은 아닙니다. 당시 ‘여성과 어린이 먼저’ 구명보트 정책이 있었다는 배경이 있었기 때문이죠. 연관성과 인과관계는 구분해야 합니다.</p></div><h3>3.3.2 사례 2: 이미 ‘집계된’ 데이터 다루기 (원본 교재의 이혼·사회계층 사례를 대체)</h3><p>지금까지는 승객 한 명이 한 행인 <b>원자료(raw data)</b>를 썼습니다. 하지만 실무에서는 아래처럼 <b>이미 개수가 세어진(요약된) 표</b>를 받기도 합니다. 이때는 개수가 들어 있는 열(<code>Freq</code>)을 따로 사용해야 합니다.</p><div class="box analogy"><div class="box-title">🍜 쉬운 비유</div><p>설문 응답지 1,000장(원자료) vs 누군가 정리해 준 집계표 “A 답변 600, B 답변 400”(요약 자료). 후자는 한 줄이 한 사람이 아니라 <b>‘몇 명’이라는 숫자</b>를 품고 있습니다. 그래서 그 숫자 열을 기준으로 다시 계산해야 해요.</p></div><div class="code"><pre><code><span class="c1"># 원자료를 일부러 요약 자료로 만들어 봅니다 (groupby: 그룹별로 묶기, size: 개수 세기)</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="p">(</span><span class="n">titanic</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"class_kr"</span><span class="p">,</span> <span class="s2">"sex_kr"</span><span class="p">,</span> <span class="s2">"survived_kr"</span><span class="p">],</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                  <span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"Freq"</span><span class="p">))</span>
+<span class="n">summary</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>class_kr</th>
+      <th>sex_kr</th>
+      <th>survived_kr</th>
+      <th>Freq</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1등석</td>
+      <td>남성</td>
+      <td>사망</td>
+      <td>77</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1등석</td>
+      <td>남성</td>
+      <td>생존</td>
+      <td>45</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1등석</td>
+      <td>여성</td>
+      <td>사망</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>1등석</td>
+      <td>여성</td>
+      <td>생존</td>
+      <td>91</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2등석</td>
+      <td>남성</td>
+      <td>사망</td>
+      <td>91</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>2등석</td>
+      <td>남성</td>
+      <td>생존</td>
+      <td>17</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>2등석</td>
+      <td>여성</td>
+      <td>사망</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>2등석</td>
+      <td>여성</td>
+      <td>생존</td>
+      <td>70</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>3등석</td>
+      <td>남성</td>
+      <td>사망</td>
+      <td>300</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>3등석</td>
+      <td>남성</td>
+      <td>생존</td>
+      <td>47</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>3등석</td>
+      <td>여성</td>
+      <td>사망</td>
+      <td>72</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>3등석</td>
+      <td>여성</td>
+      <td>생존</td>
+      <td>72</td>
+    </tr>
+  </tbody>
+</table></div></div><p>교차표를 만들 때는 <code>values</code>(합칠 숫자 열)와 <code>aggfunc="sum"</code>(합계)을 지정합니다.</p><div class="code"><pre><code><span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"sex_kr"</span><span class="p">],</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"survived_kr"</span><span class="p">],</span> <span class="n">values</span><span class="o">=</span><span class="n">summary</span><span class="p">[</span><span class="s2">"Freq"</span><span class="p">],</span> <span class="n">aggfunc</span><span class="o">=</span><span class="s2">"sum"</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>survived_kr</th>
+      <th>사망</th>
+      <th>생존</th>
+    </tr>
+    <tr>
+      <th>sex_kr</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>남성</th>
+      <td>468</td>
+      <td>109</td>
+    </tr>
+    <tr>
+      <th>여성</th>
+      <td>81</td>
+      <td>233</td>
+    </tr>
+  </tbody>
+</table></div></div><p>그래프도 마찬가지로, ‘행을 세어서’ 그리는 <code>countplot</code> 대신 <b>이미 있는 숫자를 막대 높이로 쓰는</b> <code>barplot</code>을 사용합니다. 여기서는 등급별로 칸을 나누어 성별·생존을 비교해 봅니다.</p><div class="code"><pre><code><span class="n">g</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">catplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">summary</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"sex_kr"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"Freq"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">"survived_kr"</span><span class="p">,</span>
+                <span class="n">kind</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="s2">"class_kr"</span><span class="p">,</span> <span class="n">estimator</span><span class="o">=</span><span class="s2">"sum"</span><span class="p">,</span> <span class="n">errorbar</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">3.6</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span>
+<span class="n">g</span><span class="o">.</span><span class="n">set_axis_labels</span><span class="p">(</span><span class="s2">"성별"</span><span class="p">,</span> <span class="s2">"승객 수"</span><span class="p">)</span>
+<span class="n">g</span><span class="o">.</span><span class="n">set_titles</span><span class="p">(</span><span class="s2">"</span><span class="si">{col_name}</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><img class="fig" src="images/ch03_09.png" alt="그래프 9"></div><div class="box rcmp"><div class="box-title">🔁 R에서는?</div><p>R의 <code>xtabs(Freq ~ var1 + var2)</code> + <code>geom_col()</code>이 파이썬에서는 <code>pd.crosstab(..., values=Freq, aggfunc="sum")</code> + <code>sns.barplot()</code>(또는 <code>plt.bar</code>)에 해당합니다. 층별 분석은 <code>col=</code>(그래프 나누기) 또는 <code>df[df.조건]</code>(데이터 걸러내기)으로 합니다.</p></div><p>특정 조건만 걸러서 보고 싶다면 <b>불리언 인덱싱</b>(조건으로 행 고르기)을 씁니다. R <code>xtabs</code>의 <code>subset</code> 옵션과 같은 역할입니다.</p><div class="code"><pre><code><span class="n">only_third</span> <span class="o">=</span> <span class="n">titanic</span><span class="p">[</span><span class="n">titanic</span><span class="p">[</span><span class="s2">"class"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Third"</span><span class="p">]</span>      <span class="c1"># 3등석 승객만</span>
+<span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">crosstab</span><span class="p">(</span><span class="n">only_third</span><span class="p">[</span><span class="s2">"sex_kr"</span><span class="p">],</span> <span class="n">only_third</span><span class="p">[</span><span class="s2">"survived_kr"</span><span class="p">],</span> <span class="n">normalize</span><span class="o">=</span><span class="s2">"index"</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</code></pre></div><div class="result"><div class="rlabel">실행 결과</div><div class="tblwrap"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>survived_kr</th>
+      <th>사망</th>
+      <th>생존</th>
+    </tr>
+    <tr>
+      <th>sex_kr</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>남성</th>
+      <td>86.5</td>
+      <td>13.5</td>
+    </tr>
+    <tr>
+      <th>여성</th>
+      <td>50.0</td>
+      <td>50.0</td>
+    </tr>
+  </tbody>
+</table></div></div><h3>요약: R ↔ 파이썬 대응표</h3><div class="tblwrap"><table class="plain "><thead><tr><th>하고 싶은 일</th><th>R</th><th>파이썬</th></tr></thead><tbody><tr><td>도수표</td><td><code>table(x)</code></td><td><code>df["x"].value_counts()</code></td></tr><tr><td>상대도수표</td><td><code>proportions(table(x))</code></td><td><code>value_counts(normalize=True)</code></td></tr><tr><td>교차표</td><td><code>xtabs(~a+b, data)</code></td><td><code>pd.crosstab(df.a, df.b)</code></td></tr><tr><td>합계 추가</td><td><code>addmargins()</code></td><td><code>crosstab(..., margins=True)</code></td></tr><tr><td>행 기준 비율</td><td><code>proportions(t, 1)</code></td><td><code>crosstab(..., normalize="index")</code></td></tr><tr><td>막대그래프</td><td><code>geom_bar()</code></td><td><code>sns.countplot()</code></td></tr><tr><td>누적/나란히/100%</td><td><code>position=stack/dodge/fill</code></td><td><code>histplot(multiple=stack/fill)</code> / <code>countplot(hue=)</code></td></tr><tr><td>모자이크 그림</td><td><code>vcd::mosaic()</code></td><td><code>statsmodels … mosaic()</code></td></tr><tr><td>카이제곱 검정</td><td><code>chisq.test()</code></td><td><code>scipy.stats.chi2_contingency()</code></td></tr></tbody></table></div>
+<div class="pager"><a href="ch02.html">← 2장 기술통계 분석이란?</a><a href="ch04.html">4장 수치형 변수 기술통계 →</a></div>
+</main>
+<footer>※ 이 자료는 『R을 이용한 통계 분석』(김길환) 온라인 교재의 구성을 바탕으로, 파이썬 기준으로 새로 작성한 수업자료입니다.</footer>
+</body></html>
